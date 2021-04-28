@@ -146,3 +146,42 @@ CREATE TABLE verse(
         REFERENCES sentence_segment(id) ON DELETE CASCADE
 
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+-- Records word combinations that are used more than once in the Bible text
+-- Head word is the starting / first word in this combination
+CREATE TABLE word_combination(
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    head_word_id INT NOT NULL,
+    base_combination_id INT,
+    combined_word_id INT NOT NULL,
+    word_count INT NOT NULL DEFAULT 2,
+
+    CONSTRAINT wc_w_start_ref_fk FOREIGN KEY wc_w_start_ref_idx (head_word_id)
+        REFERENCES word(id) ON DELETE CASCADE,
+
+    CONSTRAINT wc_w_end_ref_fk FOREIGN KEY wc_w_end_ref_idx (combined_word_id)
+        REFERENCES word(id) ON DELETE CASCADE,
+
+    CONSTRAINT wc_wc_parent_ref_fk FOREIGN KEY wc_wc_parent_ref_idx (base_combination_id)
+        REFERENCES word_combination(id) ON DELETE CASCADE
+
+)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+-- Shows where the word combinations occur in the text
+-- head_assignment_id refers to the location of the first word in this combination
+-- Only the longest combination is marked as the primary one
+CREATE TABLE word_combination_assignment(
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    word_combination_id INT NOT NULL,
+    head_assignment_id INT NOT NULL,
+    is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+
+    INDEX wca_location_idx (head_assignment_id, is_primary),
+
+    CONSTRAINT wca_wc_assigned_word_ref_fk FOREIGN KEY wca_wc_assigned_word_ref_idx (word_combination_id)
+        REFERENCES word_combination(id) ON DELETE CASCADE,
+
+    CONSTRAINT wca_wa_location_ref_fk FOREIGN KEY wca_wa_location_ref_idx (head_assignment_id)
+        REFERENCES word_assignment(id) ON DELETE CASCADE
+
+)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;

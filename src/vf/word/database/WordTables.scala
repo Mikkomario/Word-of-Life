@@ -49,6 +49,15 @@ object WordTables
 	def wordAssignment = apply("word_assignment")
 	
 	/**
+	 * @return Table that lists recurring word combinations
+	 */
+	def wordCombination = apply("word_combination")
+	/**
+	 * @return Table that lists locations where certain word combinations are used
+	 */
+	def wordCombinationAssignment = apply("word_combination_assignment")
+	
+	/**
 	 * @return Table that lists codes used for books
 	 */
 	def bookCode = apply("book_code")
