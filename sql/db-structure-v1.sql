@@ -8,12 +8,16 @@ CREATE DATABASE living_word_database
 USE living_word_database;
 
 -- Each row represents a singular word from the Bible
+-- Capitalization is interpreted as follows:
+-- 0 = Normal word
+-- 1 = Always capitalized
+-- 2 = ALL CAPS
 CREATE TABLE word(
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     `value` VARCHAR(32) NOT NULL,
-    capitalize BOOLEAN NOT NULL DEFAULT FALSE,
+    capitalization INT NOT NULL DEFAULT 0,
 
-    UNIQUE INDEX w_content_idx (`value`, capitalize)
+    UNIQUE INDEX w_content_idx (`value`, capitalization)
 
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
