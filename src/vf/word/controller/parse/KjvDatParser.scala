@@ -36,13 +36,33 @@ object KjvDatParser
 	private val partSeparatorRegex = Regex.anyOf(sentencePartSeparators.mkString(""))
 	private val segmentSeparatorRegex = Regex(",")
 	
-	private val sentenceEndingParenthesisRegex =
-		Regex.escape('(') + Regex.any + sentenceSeparatorRegex + Regex.any + Regex.escape(')')
-	private val partEndingParenthesisRegex =
-		Regex.escape('(') + Regex.any + partSeparatorRegex + Regex.any + Regex.escape(')')
+	private val parenthesisFillerRegex = (!Regex.escape(')')).zeroOrMoreTimes
+	private val sentenceEndingParenthesisRegex = Regex.escape('(') + parenthesisFillerRegex +
+		sentenceSeparatorRegex + parenthesisFillerRegex + Regex.escape(')')
+	private val partEndingParenthesisRegex = Regex.escape('(') + parenthesisFillerRegex + partSeparatorRegex +
+		parenthesisFillerRegex + Regex.escape(')')
 	
 	
 	// OTHER    -------------------------------
+	
+	def test() =
+	{
+		val builder = new SentenceBuilder()
+		// Sa1|9|27| And as they were going down to the end of the city, Samuel said to Saul, Bid the servant pass on before us, (and he passed on), but stand thou still a while, that I may shew thee the word of God.~
+		builder += VerseLine(Address("Sa1", 9, 27),
+			"And as they were going down to the end of the city, Samuel said to Saul, Bid the servant pass on before us, (and he passed on), but stand thou still a while, that I may shew thee the word of God.")
+		val sentences = builder.takeSentences()
+		println(s"${sentences.size} sentences:")
+		sentences.foreach { sentence =>
+			println(s"\tSentence with ${sentence.size} parts:")
+			sentence.foreach { part =>
+				println(s"\t\tPart with ${part.size} segments:")
+				part.foreach { segment =>
+					println(s"\t\t\t${segment.text} (Parenthesis: ${segment.parenthesis}, Addr: ${segment.address})")
+				}
+			}
+		}
+	}
 	
 	/**
 	 * Reads the King James Bible data from a text file
@@ -59,6 +79,16 @@ object KjvDatParser
 		// Sentences are inserted in bulks
 		val sentenceBuffer = ActionBuffer[PreparedSentence2](100) { sentences =>
 			println(s"Inserting ${sentences.size} sentences")
+			sentences.find { _.parts.exists { _.exists { segment =>
+				segment.text.contains('(') || segment.text.contains(')') } } }.foreach { sentence =>
+				println("Parenthesis error in following sentence:")
+				sentence.parts.foreach { part =>
+					println(s"\tPart with ${part.size} segments:")
+					part.foreach { segment => println(
+						s"\t\t${segment.text} (Parenthesis: ${segment.parenthesis}, Address: ${segment.address})") }
+				}
+				throw new IllegalArgumentException("Broken sentence")
+			}
 			// Starts by inserting the sentences (top level) first
 			val insertedSentences = SentenceModel.insert(sentences.map { s => s.writingId -> s.orderIndex })
 			
@@ -264,7 +294,13 @@ object KjvDatParser
 		// Starts by splitting the segments to individual words
 		val segmentWords = segments.map { case (segmentId, text) =>
 			val targetText = if (allSeparators.contains(text.last)) text.dropRight(1) else text
-			segmentId -> Regex.whiteSpace.split(targetText).toVector.map { _.trim }
+			val words = Regex.whiteSpace.split(targetText).toVector.map { _.trim }.filterNot { _.isEmpty }
+			if (words.isEmpty)
+			{
+				println(s"Problem in segment $segmentId: '$text' because it contains no words")
+				throw new IllegalArgumentException("No words in segment")
+			}
+			segmentId -> words
 		}
 		// Needs to handle the word casing. If there doesn't exist a capitalized version of the word outside
 		// of segment starts, considers that word to be lower-case
@@ -552,21 +588,27 @@ object KjvDatParser
 		
 		private def addLastSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean) =
 		{
-			// Case: A parenthesis part starts but doesn't end in this line
-			if (!parenthesis && text.contains('('))
+			// Checks whether the part will leave a parenthesis open
+			text.optionLastIndexOf("(") match
 			{
-				val (before, after) = text.splitAtLast("(")
-				val trimmedBefore = before.trim
-				val trimmedAfter = after.trim
-				if (trimmedBefore.nonEmpty)
-					addSentenceParenthesisPart(trimmedBefore, address, parenthesis = false)
-				addSentenceParenthesisPart(trimmedAfter, if (trimmedBefore.isEmpty) address else None,
-					parenthesis = true)
-				parenthesisOpenFlag = true
+				case Some(lastParenthesisStart) =>
+					val remaining = text.substring(lastParenthesisStart)
+					// Case: Parenthesis is not left open => Default treatment
+					if (remaining.contains(')'))
+						addSentenceParenthesisPart(text, None, parenthesis)
+					// Case: Parenthesis is left open => treats the parenthesis part as a separate whole
+					else
+					{
+						val before = text.substring(0, lastParenthesisStart).trim
+						val after = remaining.drop(1).trim
+						if (before.nonEmpty)
+							addSentenceParenthesisPart(before, address, parenthesis = false)
+						addSentenceParenthesisPart(after, if (before.isEmpty) address else None, parenthesis = true)
+						parenthesisOpenFlag = true
+					}
+				// Case: No parenthesis => default handling
+				case None => addSentenceParenthesisPart(text, None, parenthesis)
 			}
-			// Case: Normal sentence part
-			else
-				addSentenceParenthesisPart(text, None, parenthesis)
 		}
 		
 		private def addSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean) =
@@ -631,10 +673,12 @@ object KjvDatParser
 				else
 					separateParenthesisFrom(part)
 			}
-			// Nex splits based on segment separator
+			// Nex splits based on segment separator (removes ")," -cases)
 			// All segments
 			val segments = parenthesisSegments.flatMap { case (text, parenthesis) =>
-				segmentSeparatorRegex.divide(text).map { _.trim -> parenthesis }
+				segmentSeparatorRegex.divide(text).map { _.trim }
+					.filterNot { t => t.isEmpty || (t.length == 1 && allSeparators.contains(t.head)) }
+					.map { _ -> parenthesis }
 			}
 			// May need to add separators before parenthesis.
 			// All but the last segment (modified)

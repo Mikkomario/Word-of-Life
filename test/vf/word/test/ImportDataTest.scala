@@ -52,7 +52,50 @@ object ImportDataTest extends App
 			}
 		}
 	}*/
+	/*
+	private def separateParenthesisFrom(str: String, regex: Regex = Regex.parenthesis) =
+	{
+		val matcher = regex.pattern.matcher(str)
+		val builder = new VectorBuilder[(String, Boolean)]()
+		var lastEnd = 0
+		while (matcher.find())
+		{
+			val start = matcher.start()
+			val end = matcher.end()
+			if (start > lastEnd)
+				builder += (str.substring(lastEnd, start).trim -> false)
+			// Doesn't include the parenthesis themselves in the strings
+			println(s"$start to $end in $str")
+			builder += (str.substring(start + 1, end - 1).trim -> true)
+			lastEnd = end
+		}
+		if (str.length > lastEnd)
+			builder += (str.substring(lastEnd).trim -> false)
+		
+		builder.result()
+	}
+	assert(separateParenthesisFrom(
+		"And Pathrusim, and Casluhim, (out of whom came Philistim,) and Caphtorim.") == Vector(
+		"And Pathrusim, and Casluhim," -> false, "out of whom came Philistim," -> true, "and Caphtorim." -> false))
 	
+	private val sentenceSeparators = Set('.', '?', '!')
+	private val sentencePartSeparators = Set(';', ':')
+	
+	private val sentenceSeparatorRegex = Regex.anyOf(sentenceSeparators.mkString(""))
+	private val partSeparatorRegex = Regex.anyOf(sentencePartSeparators.mkString(""))
+	
+	private val sentenceEndingParenthesisRegex =
+		Regex.escape('(') + Regex.any + sentenceSeparatorRegex + (!Regex.escape(')')).zeroOrMoreTimes + Regex.escape(')')
+	private val partEndingParenthesisRegex =
+		Regex.escape('(') + Regex.any + partSeparatorRegex + (!Regex.escape(')')).zeroOrMoreTimes + Regex.escape(')')
+	
+	println(separateParenthesisFrom("Some text. (More text. And more) here (and here);",
+		sentenceEndingParenthesisRegex))
+	assert(separateParenthesisFrom("Some text. (More text. And more) here (and here);",
+		sentenceEndingParenthesisRegex) == Vector(
+		"Some text." -> false, "More text. And more" -> true, "here (and here);" -> false))
+	*/
+	// KjvDatParser.test()
 	ConnectionPool { implicit connection =>
 		println("Deleting existing data")
 		connection(Delete(WordTables.word))
@@ -65,4 +108,9 @@ object ImportDataTest extends App
 			case Failure(error) => error.printStackTrace()
 		}
 	}
+	/*
+	assert(Capitalization.of("Lord's") == AlwaysCapitalize)
+	assert(Capitalization.of("LORD's") == AllCaps)
+	assert(Capitalization.of("lords") == Normal)
+	assert(Capitalization.of("lord's") == Normal)*/
 }

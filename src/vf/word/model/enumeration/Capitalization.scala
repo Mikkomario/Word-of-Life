@@ -1,5 +1,7 @@
 package vf.word.model.enumeration
 
+import utopia.flow.parse.Regex
+
 /**
  * An enumeration for different ways to capitalize words
  * @author Mikko Hilpinen
@@ -25,7 +27,7 @@ object Capitalization
 	{
 		if (word.isEmpty)
 			Normal
-		else if (word.forall { _.isUpper })
+		else if (word.takeWhile { c => Regex.alpha(c.toString) }.forall { _.isUpper })
 		{
 			if (word.length == 1) AlwaysCapitalize else AllCaps
 		}
