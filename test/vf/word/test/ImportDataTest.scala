@@ -23,6 +23,12 @@ object ImportDataTest extends App
 	
 	/*
 	Fails on:
+	Ch1|7|14| The sons of Manasseh; Ashriel, whom she bare:
+		(but his concubine the Aramitess bare Machir the father of Gilead:~
+	Ch1|7|15| And Machir took to wife the sister of Huppim and Shuppim, whose sister's name was Maachah;)
+		and the name of the second was Zelophehad: and Zelophehad had daughters.~
+	
+	Fails on:
 	Jdg|20|27| And the children of Israel enquired of the LORD,
 		(for the ark of the covenant of God was there in those days,~
 	Jdg|20|28| And Phinehas, the son of Eleazar, the son of Aaron, stood before it in those days,)

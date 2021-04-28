@@ -460,6 +460,9 @@ object KjvDatParser
 		private var completeSegments = Vector[PreparedSegment]()
 		private var incompleteSegment: Option[PreparedSegment] = None
 		
+		// Left as true when the previous line opened but didn't close a parenthesis
+		private var parenthesisOpenFlag = false
+		
 		
 		// OTHER    ----------------------------
 		
@@ -469,13 +472,42 @@ object KjvDatParser
 			val parenthesisParts = separateParenthesisFrom(line.text, sentenceEndingParenthesisRegex)
 			// Adds the parts individually
 			val (firstPart, firstParenthesis) = parenthesisParts.head
-			addSentenceParenthesisPart(firstPart, Some(line.address), firstParenthesis,
-				sentenceSeparators.contains(firstPart.last))
+			// Checks whether an existing parenthesis segment ends within the first part
+			if (parenthesisOpenFlag && !firstParenthesis && firstPart.contains(')'))
+			{
+				parenthesisOpenFlag = false
+				
+				// If so, handles the first part in two parts
+				val (parenthesisPart, outsideParenthesisPart) = firstPart.splitAtFirst(")")
+				val trimmedParenthesisPart = parenthesisPart.trim
+				val trimmedOutsideParenthesisPart = outsideParenthesisPart.trim
+				addSentenceParenthesisPart(trimmedParenthesisPart, Some(line.address), parenthesis = true)
+				if (trimmedOutsideParenthesisPart.nonEmpty)
+				{
+					// In case this is the last part, checks whether a parenthesis section starts but doesn't end
+					// there
+					if (parenthesisParts.size == 1)
+						addLastSentenceParenthesisPart(trimmedOutsideParenthesisPart, None, parenthesis = false)
+					else
+						addSentenceParenthesisPart(trimmedOutsideParenthesisPart, None, parenthesis = false)
+				}
+			}
+			else
+			{
+				val actualFirstParenthesis = firstParenthesis || parenthesisOpenFlag
+				if (parenthesisParts.size == 1)
+					addLastSentenceParenthesisPart(firstPart, Some(line.address), actualFirstParenthesis)
+				else
+					addSentenceParenthesisPart(firstPart, Some(line.address), firstParenthesis || parenthesisOpenFlag)
+			}
 			if (parenthesisParts.size > 1)
 			{
-				parenthesisParts.tail.foreach { case (part, parenthesis) =>
-					addSentenceParenthesisPart(part, None, parenthesis, sentenceSeparators.contains(part.last))
+				// Handles the last part separately, because it may start a parenthesis section and not end it
+				parenthesisParts.tail.dropRight(1).foreach { case (part, parenthesis) =>
+					addSentenceParenthesisPart(part, None, parenthesis)
 				}
+				val (lastPart, lastParenthesis) = parenthesisParts.last
+				addLastSentenceParenthesisPart(lastPart, None, lastParenthesis)
 			}
 		}
 		
@@ -518,17 +550,36 @@ object KjvDatParser
 			incompleteSegment = None
 		}
 		
-		private def addSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean,
-		                                       complete: Boolean) =
+		private def addLastSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean) =
+		{
+			// Case: A parenthesis part starts but doesn't end in this line
+			if (!parenthesis && text.contains('('))
+			{
+				val (before, after) = text.splitAtLast("(")
+				val trimmedBefore = before.trim
+				val trimmedAfter = after.trim
+				if (trimmedBefore.nonEmpty)
+					addSentenceParenthesisPart(trimmedBefore, address, parenthesis = false)
+				addSentenceParenthesisPart(trimmedAfter, if (trimmedBefore.isEmpty) address else None,
+					parenthesis = true)
+				parenthesisOpenFlag = true
+			}
+			// Case: Normal sentence part
+			else
+				addSentenceParenthesisPart(text, None, parenthesis)
+		}
+		
+		private def addSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean) =
 		{
 			// Checks how many sentences the text contains
 			val sentences = sentenceSeparatorRegex.divide(text).map { _.trim }.filterNot { _.isEmpty }
 			// Processes the sentences. However, the last sentence may not always complete.
-			addSentence(sentences.head, address, parenthesis, complete || sentences.size > 1)
+			addSentence(sentences.head, address, parenthesis,
+				sentences.size > 1 || sentenceSeparators.contains(sentences.head.last))
 			if (sentences.size > 1)
 			{
 				sentences.tail.dropRight(1).foreach { addSentence(_, None, parenthesis, complete = true) }
-				addSentence(sentences.last, None, parenthesis, complete)
+				addSentence(sentences.last, None, parenthesis, sentenceSeparators.contains(sentences.last.last))
 			}
 		}
 		
