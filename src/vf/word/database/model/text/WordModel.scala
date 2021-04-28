@@ -21,6 +21,12 @@ object WordModel
 	// OTHER    -----------------------------
 	
 	/**
+	 * @param id A word id
+	 * @return A word with that id
+	 */
+	def withId(id: Int) = apply(Some(id))
+	
+	/**
 	 * Inserts multiple new words to the database
 	 * @param data Data to insert
 	 * @param connection DB Connection (implicit)
@@ -42,7 +48,24 @@ object WordModel
 case class WordModel(id: Option[Int] = None, value: Option[String] = None, capitalize: Option[Capitalization] = None)
 	extends Storable
 {
+	// IMPLEMENTED  -------------------------
+	
 	override def table = WordModel.table
 	
 	override def valueProperties = Vector("id" -> id, "value" -> value, "capitalization" -> capitalize.map { _.id })
+	
+	
+	// OTHER    -----------------------------
+	
+	/**
+	 * @param value New word value / text
+	 * @return A copy of this model with that value
+	 */
+	def withValue(value: String) = copy(value = Some(value))
+	
+	/**
+	 * @param capitalization A new capitalization
+	 * @return A copy of this model with that capitalization
+	 */
+	def withCapitalization(capitalization: Capitalization) = copy(capitalize = Some(capitalization))
 }
