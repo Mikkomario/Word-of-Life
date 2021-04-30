@@ -9,6 +9,7 @@ import utopia.vault.database.Connection
 import vf.word.database.access.many.text.DbWritings
 import vf.word.database.model.address.{BookCodeModel, ChapterModel, VerseModel}
 import vf.word.database.model.text.{SentenceModel, SentencePartModel, SentenceSegmentModel, WordAssignmentModel, WordModel}
+import vf.word.model.cached.Location
 import vf.word.model.enumeration.Capitalization
 import vf.word.model.enumeration.Capitalization.AlwaysCapitalize
 import vf.word.model.partial.address.{BookCodeData, VerseData}
@@ -550,7 +551,8 @@ object KjvDatParser
 			
 			// Assigns the words to the segments
 			WordAssignmentModel.insert(segmentWords.flatMap { case (segmentId, words) =>
-				words.zipWithIndex.map { case (word, index) => WordAssignmentData(idForWord(word), segmentId, index) }
+				words.zipWithIndex.map { case (word, index) =>
+					WordAssignmentData(idForWord(word), Location(segmentId, index)) }
 			})
 		}
 		

@@ -53,6 +53,10 @@ object WordTables
 	 */
 	def wordCombination = apply("word_combination")
 	/**
+	 * @return Table that assigns words to word combinations
+	 */
+	def wordCombinationWord = apply("word_combination_word")
+	/**
 	 * @return Table that lists locations where certain word combinations are used
 	 */
 	def wordCombinationAssignment = apply("word_combination_assignment")

@@ -5,6 +5,7 @@ import utopia.vault.database.Connection
 import utopia.vault.model.immutable.Storable
 import utopia.vault.sql.Insert
 import vf.word.database.WordTables
+import vf.word.model.cached.Location
 import vf.word.model.partial.text.WordAssignmentData
 import vf.word.model.stored.text.WordAssignment
 
@@ -21,10 +22,27 @@ object WordAssignmentModel
 	// OTHER    -------------------------
 	
 	/**
+	 * @param wordId A word id
+	 * @return A model with that word id
+	 */
+	def withWordId(wordId: Int) = apply(wordId = Some(wordId))
+	/**
+	 * @param locationId A word location (sentence segment) id
+	 * @return A model with that id set
+	 */
+	def withLocationId(locationId: Int) = apply(locationId = Some(locationId))
+	/**
+	 * @param location A word location
+	 * @return A model with that location set
+	 */
+	def withLocation(location: Location) = apply(locationId = Some(location.targetId),
+		orderIndex = Some(location.orderIndex))
+	
+	/**
 	 * @param data Word assignment data
 	 * @return A model matching that data
 	 */
-	def apply(data: WordAssignmentData): WordAssignmentModel = apply(None, Some(data.wordId), Some(data.locationId),
+	def apply(data: WordAssignmentData): WordAssignmentModel = apply(None, Some(data.wordId), Some(data.segmentId),
 		Some(data.orderIndex))
 	
 	/**
@@ -48,8 +66,19 @@ object WordAssignmentModel
 case class WordAssignmentModel(id: Option[Int] = None, wordId: Option[Int] = None, locationId: Option[Int] = None,
                                orderIndex: Option[Int] = None) extends Storable
 {
+	// IMPLEMENTED  --------------------------
+	
 	override def table = WordAssignmentModel.table
 	
 	override def valueProperties = Vector("id" -> id, "wordId" -> wordId, "locationId" -> locationId,
 		"orderIndex" -> orderIndex)
+	
+	
+	// OTHER    ------------------------------
+	
+	/**
+	 * @param orderIndex A word order index
+	 * @return A copy of this model with that order index
+	 */
+	def withOrderIndex(orderIndex: Int) = copy(orderIndex = Some(orderIndex))
 }

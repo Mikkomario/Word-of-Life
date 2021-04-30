@@ -148,21 +148,32 @@ CREATE TABLE verse(
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
 -- Records word combinations that are used more than once in the Bible text
--- Head word is the starting / first word in this combination
+-- In base combination side, 0 means that the base combination appears on the left
+-- and 1 means it appears on the right
 CREATE TABLE word_combination(
     id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    head_word_id INT NOT NULL,
-    base_combination_id INT,
-    combined_word_id INT NOT NULL,
     word_count INT NOT NULL DEFAULT 2,
+    base_combination_id INT,
+    base_combination_side INT NOT NULL DEFAULT 0,
 
-    CONSTRAINT wc_w_start_ref_fk FOREIGN KEY wc_w_start_ref_idx (head_word_id)
+    CONSTRAINT wc_wc_base_ref_fk FOREIGN KEY wc_wc_base_ref_idx (base_combination_id)
+        REFERENCES word_combination(id) ON DELETE SET NULL
+
+)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+-- Links words to word combinations
+CREATE TABLE word_combination_word(
+    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    word_id INT NOT NULL,
+    combination_id INT NOT NULL,
+    order_index INT NOT NULL DEFAULT 0,
+
+    UNIQUE INDEX wcw_order_idx (combination_id, order_index),
+
+    CONSTRAINT wcw_w_word_ref_fk FOREIGN KEY wcw_w_word_ref_idx (word_id)
         REFERENCES word(id) ON DELETE CASCADE,
 
-    CONSTRAINT wc_w_end_ref_fk FOREIGN KEY wc_w_end_ref_idx (combined_word_id)
-        REFERENCES word(id) ON DELETE CASCADE,
-
-    CONSTRAINT wc_wc_parent_ref_fk FOREIGN KEY wc_wc_parent_ref_idx (base_combination_id)
+    CONSTRAINT wcw_wc_combination_ref_fk FOREIGN KEY wcw_wc_combination_ref_idx (combination_id)
         REFERENCES word_combination(id) ON DELETE CASCADE
 
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
