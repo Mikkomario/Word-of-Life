@@ -1,5 +1,7 @@
 package vf.word.model.cached
 
+import vf.word.model.enumeration.WordSide
+
 object Location
 {
 	/**
@@ -18,6 +20,8 @@ object Location
  */
 case class Location(targetId: Int, orderIndex: Int)
 {
+	// COMPUTED --------------------------
+	
 	/**
 	 * @return The location after this one
 	 */
@@ -35,4 +39,21 @@ case class Location(targetId: Int, orderIndex: Int)
 	 * @return Whether this location is the second or greater in the target entity
 	 */
 	def isTail = orderIndex > 0
+	/**
+	 * @return Whether this location is positive (not on the left side of starting location)
+	 */
+	def isPositive = orderIndex >= 0
+	
+	
+	// OTHER    ----------------------------
+	
+	/**
+	 * @param direction Advancing direction
+	 * @return A location towards that direction
+	 */
+	def towards(direction: WordSide) = direction match
+	{
+		case WordSide.Left => previous
+		case WordSide.Right => next
+	}
 }
