@@ -25,6 +25,11 @@ object WordModel
 	 * @return A word with that id
 	 */
 	def withId(id: Int) = apply(Some(id))
+	/**
+	 * @param value Word as a text
+	 * @return A model with that value
+	 */
+	def withValue(value: String) = apply(value = Some(value))
 	
 	/**
 	 * Inserts multiple new words to the database
@@ -62,7 +67,6 @@ case class WordModel(id: Option[Int] = None, value: Option[String] = None, capit
 	 * @return A copy of this model with that value
 	 */
 	def withValue(value: String) = copy(value = Some(value))
-	
 	/**
 	 * @param capitalization A new capitalization
 	 * @return A copy of this model with that capitalization

@@ -8,7 +8,7 @@ import vf.word.database.WordTables
  * @author Mikko Hilpinen
  * @since 28.4.2021, v0.2
  */
-object WordIds extends ManyIntIdAccess
+object DbWordIds extends ManyIntIdAccess
 {
 	// IMPLEMENTED  -----------------------------
 	
