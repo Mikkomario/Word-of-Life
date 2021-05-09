@@ -13,7 +13,6 @@ object DbWordIds extends ManyIntIdAccess
 	// IMPLEMENTED  -----------------------------
 	
 	override def table = WordTables.word
-	
 	override def target = table
 	
 	override def globalCondition = None

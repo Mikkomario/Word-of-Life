@@ -1,14 +1,13 @@
 package vf.word.test
 
 import utopia.flow.generic.DataType
-import utopia.vault.sql.Delete
+import utopia.flow.util.TimeLogger
+import utopia.vault.sql.{Delete, Limit}
 import utopia.vault.util.ErrorHandling
 import utopia.vault.util.ErrorHandlingPrinciple.Throw
 import vf.word.controller.process.CombineWords
 import vf.word.database.{ConnectionPool, WordTables}
 import vf.word.util.Globals.executionContext
-
-import scala.util.{Failure, Success}
 
 /**
  * Tests word combination
@@ -20,12 +19,20 @@ object WordCombineTest extends App
 	DataType.setup()
 	ErrorHandling.defaultPrinciple = Throw
 	
+	val logger = new TimeLogger()
+	
 	ConnectionPool { implicit connection =>
-		println("Deleting existing data")
+		// println(connection(Delete(WordTables.wordCombinationAssignment) + Limit(3)))
+		
+		logger.checkPoint("Deleting existing word combination assignments")
+		connection(Delete(WordTables.wordCombinationAssignment))
+		logger.checkPoint("Deleting existing word combination words")
+		connection(Delete(WordTables.wordCombinationWord))
+		logger.checkPoint("Deleting existing word combinations")
 		connection(Delete(WordTables.wordCombination))
 		
-		println("Starting file processing")
-		CombineWords.test("Daniel")
-		println("Done!")
+		logger.checkPoint("Starting word combination algorithm")
+		CombineWords()
+		logger.checkPoint("Done!")
 	}
 }

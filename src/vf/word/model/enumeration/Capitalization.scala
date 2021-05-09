@@ -17,6 +17,14 @@ sealed trait Capitalization
 
 object Capitalization
 {
+	// ATTRIBUTES   ------------------------
+	
+	/**
+	 * All values of this enumeration
+	 */
+	val values = Vector[Capitalization](Normal, AlwaysCapitalize, AllCaps)
+	
+	
 	// OTHER    ----------------------------
 	
 	/**
@@ -36,6 +44,12 @@ object Capitalization
 		else
 			Normal
 	}
+	
+	/**
+	 * @param id A capitalization id
+	 * @return Capitalization that matches that id
+	 */
+	def forId(id: Int) = values.find { _.id == id }
 	
 	
 	// NESTED   ----------------------------

@@ -30,6 +30,11 @@ object WordModel
 	 * @return A model with that value
 	 */
 	def withValue(value: String) = apply(value = Some(value))
+	/**
+	 * @param capitalization A capitalization style
+	 * @return A model with that style
+	 */
+	def withCapitalization(capitalization: Capitalization) = apply(capitalize = Some(capitalization))
 	
 	/**
 	 * Inserts multiple new words to the database
