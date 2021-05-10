@@ -28,7 +28,7 @@ object CombineWords
 	// ATTRIBUTES   -----------------------------------
 	
 	private val minimumCombinationOccurrence = 7
-	private val bufferSize = 500
+	private val bufferSize = 350
 	
 	
 	// OTHER    ---------------------------------------
@@ -83,6 +83,7 @@ object CombineWords
 		// Handles each word at a time
 		Vector(AllCaps, AlwaysCapitalize, Normal).view.flatMap { DbWords.withCapitalization(_).ids }.foreach { wordId =>
 			val headAssignments = DbWord(wordId).assignments
+			println(s"Processing word $wordId (${headAssignments.size} locations)")
 			// Searches the words that appear after this word in the text
 			// May filter the results based on already inserted combinations
 			val rightwardCombinations = duplicateChecker.filter(wordId,
@@ -192,6 +193,7 @@ object CombineWords
 			val backDirection = direction.opposite
 			
 			// Finds the words listed next to the base locations
+			// TODO: Likely not a good idea when there are 51 000 assignments to start with
 			WordAssignmentFactory.getMany(Condition.or(baseAssignments.map { _.location.towards(direction) }
 				.filter { _.isPositive }.map { WordAssignmentModel.withLocation(_).toCondition }))
 				// Only includes the words of which there are multiple instances
@@ -256,11 +258,11 @@ object CombineWords
 	{
 		// ATTRIBUTES   -----------------------------
 		
-		private val wordInsertBuffer = ActionBuffer[WordCombinationWordData](bufferSize) { wordData =>
+		private val wordInsertBuffer = ActionBuffer[WordCombinationWordData](bufferSize * 2) { wordData =>
 			println(s"Inserting ${wordData.size} combination words")
 			WordCombinationWordModel.insert(wordData)
 		}
-		private val assignmentInsertBuffer = ActionBuffer[WordCombinationAssignmentData](bufferSize) { assignmentData =>
+		private val assignmentInsertBuffer = ActionBuffer[WordCombinationAssignmentData](bufferSize * 2) { assignmentData =>
 			println(s"Inserting ${assignmentData.size} combination assignments")
 			WordCombinationAssignmentModel.insert(assignmentData)
 		}

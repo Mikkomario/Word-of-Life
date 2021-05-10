@@ -22,14 +22,12 @@ object WordCombineTest extends App
 	val logger = new TimeLogger()
 	
 	ConnectionPool { implicit connection =>
-		// println(connection(Delete(WordTables.wordCombinationAssignment) + Limit(3)))
-		
 		logger.checkPoint("Deleting existing word combination assignments")
-		connection(Delete(WordTables.wordCombinationAssignment))
+		Delete.inParts(WordTables.wordCombinationAssignment, 5000)
 		logger.checkPoint("Deleting existing word combination words")
-		connection(Delete(WordTables.wordCombinationWord))
+		Delete.inParts(WordTables.wordCombinationWord, 5000)
 		logger.checkPoint("Deleting existing word combinations")
-		connection(Delete(WordTables.wordCombination))
+		Delete.inParts(WordTables.wordCombination, 5000)
 		
 		logger.checkPoint("Starting word combination algorithm")
 		CombineWords()
