@@ -5,7 +5,6 @@ import utopia.flow.util.ActionBuffer
 import utopia.flow.util.CollectionExtensions._
 import utopia.vault.database.Connection
 import utopia.vault.sql.Condition
-import vf.word.database.access.id.single.DbWordId
 import vf.word.database.access.many.text.DbWords
 import vf.word.database.access.single.text.DbWord
 import vf.word.database.factory.text.WordAssignmentFactory
@@ -37,41 +36,6 @@ object CombineWords
 	 * Searches and records word combinations throughout all the texts
 	 * @param connection DB Connection (implicit)
 	 */
-	def test(word: String)(implicit connection: Connection) =
-	{
-		// The inserts are bundled using a buffer
-		val insertBuffer = ActionBuffer[Tree[PreparedCombination]](bufferSize) { roots =>
-			insertCombinations(roots, None)
-		}
-		val duplicateChecker = new DuplicateChecker()
-		
-		// Handles each word at a time
-		DbWordId(word).foreach { wordId =>
-			val headAssignments = DbWord(wordId).assignments
-			// Searches the words that appear after this word in the text
-			// May filter the results based on already inserted combinations
-			val rightwardCombinations = duplicateChecker.filter(wordId, combinationsFrom(headAssignments))
-			// Checks which of the combinations extend to the left and by how much
-			val leftwardCombinations = combinationsFrom(
-				rightwardCombinations.flatMap { _.allContentIterator.flatMap { _.headAssignments } }, WordSide.Left)
-			println(s"Found ${headAssignments.size} locations for word $wordId, ${
-				rightwardCombinations.size} combinations to the right and ${
-				leftwardCombinations.size} potential combinations to the left")
-			// Combines and saves the combinations
-			rightwardCombinations.foreach { root =>
-				println(s"Handling combination starting with ${root.content.wordId} (${root.size} variations)")
-				insertBuffer ++= combineCombinations(Vector(wordId), root, leftwardCombinations, duplicateChecker)
-			}
-		}
-		
-		// Inserts the remaining combinations
-		insertBuffer.flush()
-	}
-	
-	/**
-	 * Searches and records word combinations throughout all the texts
-	 * @param connection DB Connection (implicit)
-	 */
 	def apply()(implicit connection: Connection) =
 	{
 		// The inserts are bundled using a set of buffers
@@ -83,65 +47,30 @@ object CombineWords
 		// Handles each word at a time
 		Vector(AllCaps, AlwaysCapitalize, Normal).view.flatMap { DbWords.withCapitalization(_).ids }.foreach { wordId =>
 			val headAssignments = DbWord(wordId).assignments
-			println(s"Processing word $wordId (${headAssignments.size} locations)")
-			// Searches the words that appear after this word in the text
-			// May filter the results based on already inserted combinations
-			val rightwardCombinations = duplicateChecker.filter(wordId,
-				combinationsFrom(headAssignments, excludeWordIds = processedWordIds))
-			// Checks which of the combinations extend to the left and by how much
-			val leftwardCombinations = combinationsFrom(
-				rightwardCombinations.flatMap { _.allContentIterator.flatMap { _.headAssignments } }, WordSide.Left)
-			// Combines and saves the combinations
-			rightwardCombinations.foreach { root =>
-				insertBuffer ++= combineCombinations(Vector(wordId), root, leftwardCombinations, duplicateChecker)
+			val numberOfOrigins = headAssignments.size
+			// Skips words that appear too few or too many times
+			if (numberOfOrigins >= minimumCombinationOccurrence && numberOfOrigins < 20000)
+			{
+				println(s"Processing word $wordId (${headAssignments.size} locations)")
+				// Searches the words that appear after this word in the text
+				// May filter the results based on already inserted combinations
+				val rightwardCombinations = duplicateChecker.filter(wordId,
+					combinationsFrom(headAssignments, excludeWordIds = processedWordIds))
+				// Checks which of the combinations extend to the left and by how much
+				val leftwardCombinations = combinationsFrom(
+					rightwardCombinations.flatMap { _.allContentIterator.flatMap { _.headAssignments } }, WordSide.Left)
+				// Combines and saves the combinations
+				rightwardCombinations.foreach { root =>
+					insertBuffer ++= combineCombinations(Vector(wordId), root, leftwardCombinations, duplicateChecker)
+				}
+				
+				processedWordIds += wordId
 			}
-			
-			processedWordIds += wordId
 		}
 		
 		// Inserts the remaining combinations
+		println("Inserting the last buffered data")
 		insertBuffer.flush()
-	}
-	
-	private def insertCombinations(remaining: Vector[Tree[PreparedCombination]], baseCombinationId: Option[Int])
-	                              (implicit connection: Connection): Unit =
-	{
-		if (remaining.nonEmpty)
-		{
-			println(s"Inserting ${remaining.size} new word combinations")
-			
-			// Performs the inserts in layers in order to acquire the base combination ids which are required in the
-			// following inserts
-			// Starts by inserting the base combinations
-			val insertedCombinations = WordCombinationModel.insert(remaining.map { _.content }
-				.map { prepared => WordCombinationData(prepared.wordIds.size, baseCombinationId, prepared.baseSide) })
-			val insertedRemaining = insertedCombinations.zip(remaining)
-			// Next assigns the words into those combinations
-			// TODO: Insert these in bulks
-			WordCombinationWordModel.insert(insertedRemaining
-				.flatMap { case (combination, node) => node.content.wordIds.zipWithIndex
-					.map { case (wordId, index) => WordCombinationWordData(wordId, Location(combination.id, index)) } })
-			// Next assigns the combinations to correct places
-			// TODO: Also insert these in bulks
-			WordCombinationAssignmentModel.insert(insertedRemaining.flatMap { case (combination, node) =>
-				val headWordId = node.content.wordIds.head
-				val primaryLocations = node.content.headAssignmentIds
-				val secondaryLocations = node.contentBelowIterator.flatMap { combination =>
-					val headAdjust = combination.wordIds.indexOf(headWordId)
-					combination.assignments.map { _(headAdjust).id }
-				}.toVector
-				
-				primaryLocations.map { assignmentId =>
-					WordCombinationAssignmentData(combination.id, assignmentId, primary = true) } ++
-					secondaryLocations.map { assignmentId => WordCombinationAssignmentData(combination.id, assignmentId) }
-			})
-			// Finally moves to the underlying layers
-			// (each is handled separately due to the different base combination id)
-			// TODO: Push these into a new buffer
-			insertedRemaining.foreach { case (combination, node) =>
-				insertCombinations(node.children, Some(combination.id))
-			}
-		}
 	}
 	
 	private def combineCombinations(baseWordIds: Vector[Int], node: Tree[CombinationPiece],
@@ -193,9 +122,7 @@ object CombineWords
 			val backDirection = direction.opposite
 			
 			// Finds the words listed next to the base locations
-			// TODO: Likely not a good idea when there are 51 000 assignments to start with
-			WordAssignmentFactory.getMany(Condition.or(baseAssignments.map { _.location.towards(direction) }
-				.filter { _.isPositive }.map { WordAssignmentModel.withLocation(_).toCondition }))
+			assignmentsNextTo(baseAssignments, direction).toVector
 				// Only includes the words of which there are multiple instances
 				.groupBy { _.wordId }
 				.filter { case (_, assignments) => assignments.size >= minimumCombinationOccurrence }
@@ -234,6 +161,19 @@ object CombineWords
 			Vector()
 	}
 	
+	private def assignmentsNextTo(original: Vector[WordAssignment], direction: WordSide)
+	                             (implicit connection: Connection) =
+	{
+		// Performs the queries in smaller pieces to avoid overburdening the database and results parsing
+		val numberOfOrigins = original.size
+		Iterator.from(0, 250).takeWhile { _ < numberOfOrigins }
+			.map { startIndex => original.slice(startIndex, startIndex + 250)
+				.map { _.location.towards(direction) }.filter { _.isPositive }
+				.map { WordAssignmentModel.withLocation(_).toCondition } }
+			.map { Condition.or(_) }
+			.flatMap { WordAssignmentFactory.getMany(_) }
+	}
+	
 	
 	// NESTED   ----------------------------------------
 	
@@ -258,15 +198,15 @@ object CombineWords
 	{
 		// ATTRIBUTES   -----------------------------
 		
-		private val wordInsertBuffer = ActionBuffer[WordCombinationWordData](bufferSize * 2) { wordData =>
+		private val wordInsertBuffer = ActionBuffer[WordCombinationWordData](1000) { wordData =>
 			println(s"Inserting ${wordData.size} combination words")
 			WordCombinationWordModel.insert(wordData)
 		}
-		private val assignmentInsertBuffer = ActionBuffer[WordCombinationAssignmentData](bufferSize * 2) { assignmentData =>
+		private val assignmentInsertBuffer = ActionBuffer[WordCombinationAssignmentData](1500) { assignmentData =>
 			println(s"Inserting ${assignmentData.size} combination assignments")
 			WordCombinationAssignmentModel.insert(assignmentData)
 		}
-		private val primaryInsertBuffer = ActionBuffer[(Tree[PreparedCombination], Option[Int])](bufferSize) { trees =>
+		private val primaryInsertBuffer = ActionBuffer[(Tree[PreparedCombination], Option[Int])](200) { trees =>
 			insertCombinations(trees)
 		}
 		
