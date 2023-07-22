@@ -1,8 +1,9 @@
 package vf.word.controller.process
 
-import utopia.flow.datastructure.immutable.Tree
+import utopia.flow.collection.immutable.Tree
 import utopia.flow.util.ActionBuffer
-import utopia.flow.util.CollectionExtensions._
+import utopia.flow.collection.CollectionExtensions._
+import utopia.flow.operator.EqualsFunction
 import utopia.vault.database.Connection
 import utopia.vault.sql.Condition
 import vf.word.database.access.many.text.DbWords
@@ -58,7 +59,7 @@ object CombineWords
 					combinationsFrom(headAssignments, excludeWordIds = processedWordIds))
 				// Checks which of the combinations extend to the left and by how much
 				val leftwardCombinations = combinationsFrom(
-					rightwardCombinations.flatMap { _.allContentIterator.flatMap { _.headAssignments } }, WordSide.Left)
+					rightwardCombinations.flatMap { _.allNavsIterator.flatMap { _.headAssignments } }, WordSide.Left)
 				// Combines and saves the combinations
 				rightwardCombinations.foreach { root =>
 					insertBuffer ++= combineCombinations(Vector(wordId), root, leftwardCombinations, duplicateChecker)
@@ -77,8 +78,8 @@ object CombineWords
 	                                leftCombinations: Vector[Tree[CombinationPiece]],
 	                                duplicateChecker: DuplicateChecker): Vector[Tree[PreparedCombination]] =
 	{
-		val rootHeadAssignments = node.content.headAssignments
-		val wordIds = baseWordIds :+ node.content.wordId
+		val rootHeadAssignments = node.nav.headAssignments
+		val wordIds = baseWordIds :+ node.nav.wordId
 		
 		// Collects the branches first
 		val branchResults = node.children.flatMap { childNode =>
@@ -87,11 +88,12 @@ object CombineWords
 		// (which need to be reversed because the word ids are listed from right to left)
 		val leftTrees = leftCombinations.flatMap { node =>
 			// Case: The left root is associated with this node
-			if (node.content.headAssignments.existsCount(minimumCombinationOccurrence)(rootHeadAssignments.contains))
+			if (node.nav.headAssignments.existsCount(minimumCombinationOccurrence)(rootHeadAssignments.contains))
 				Vector(node)
 			// Case: Some of the left child nodes may be associated with this node
+			// TODO: Replace .findBranches with something better
 			else
-				node.findBranches { _.content.headAssignments
+				node.findBranches { _.nav.headAssignments
 					.existsCount(minimumCombinationOccurrence)(rootHeadAssignments.contains) }
 		}
 		// Records the left side branches to the duplicate checker also
@@ -102,9 +104,8 @@ object CombineWords
 		
 		// Checks whether this node ought to be saved
 		// Case: Yes => Uses this node as the base for other associated nodes
-		if (rootHeadAssignments.size >= minimumCombinationOccurrence)
-		{
-			val baseCombination = PreparedCombination(wordIds, node.content.assignments)
+		if (rootHeadAssignments.size >= minimumCombinationOccurrence) {
+			val baseCombination = PreparedCombination(wordIds, node.nav.assignments)
 			Vector(Tree(baseCombination, branchResults ++ leftResults))
 		}
 		// Case: No => Only save branches / left side results
@@ -142,7 +143,7 @@ object CombineWords
 						val continuingCombinations = combinationsFrom(nextAssignments, direction, excludeWordIds)
 						// Adjusts the locations of results to start from the correct baseLocation
 						val continuingAssignments = continuingCombinations
-							.flatMap { _.content.headAssignments }.toSet
+							.flatMap { _.nav.headAssignments }.toSet
 						val stoppingAssignments = nextAssignments.filterNot(continuingAssignments.contains)
 						
 						val continuingResults = continuingCombinations.map { _.map { combination =>
@@ -171,7 +172,7 @@ object CombineWords
 				.map { _.location.towards(direction) }.filter { _.isPositive }
 				.map { WordAssignmentModel.withLocation(_).toCondition } }
 			.map { Condition.or(_) }
-			.flatMap { WordAssignmentFactory.getMany(_) }
+			.flatMap { WordAssignmentFactory.findMany(_) }
 	}
 	
 	
@@ -234,19 +235,19 @@ object CombineWords
 				// Starts by inserting the base combinations
 				val insertedCombinations = WordCombinationModel.insert(
 					remaining.map { case (combinationTree, baseId) =>
-						val combination = combinationTree.content
+						val combination = combinationTree.nav
 						WordCombinationData(combination.wordIds.size, baseId, combination.baseSide)
 					})
 				val insertedRemaining = insertedCombinations.zip(remaining.map { _._1 })
 				// Next assigns the words into those combinations (inserts in bulks)
 				wordInsertBuffer ++= insertedRemaining
-					.flatMap { case (combination, node) => node.content.wordIds.zipWithIndex
+					.flatMap { case (combination, node) => node.nav.wordIds.zipWithIndex
 						.map { case (wordId, index) => WordCombinationWordData(wordId, Location(combination.id, index)) } }
 				// Next assigns the combinations to correct places (inserts in bulks)
 				assignmentInsertBuffer ++= insertedRemaining.flatMap { case (combination, node) =>
-					val headWordId = node.content.wordIds.head
-					val primaryLocations = node.content.headAssignmentIds
-					val secondaryLocations = node.contentBelowIterator.flatMap { combination =>
+					val headWordId = node.nav.wordIds.head
+					val primaryLocations = node.nav.headAssignmentIds
+					val secondaryLocations = node.navsBelowIterator.flatMap { combination =>
 						val headAdjust = combination.wordIds.indexOf(headWordId)
 						combination.assignments.map { _(headAdjust).id }
 					}.toVector
@@ -277,28 +278,24 @@ object CombineWords
 		
 		// Filters the specified word combinations to exclude duplicates
 		// Used for right side word combinations
-		def filter(baseWordId: Int, rightCombinations: Vector[Tree[CombinationPiece]]) =
-		{
-			skips.get(baseWordId) match
-			{
+		def filter(baseWordId: Int, rightCombinations: Vector[Tree[CombinationPiece]]) = {
+			skips.get(baseWordId) match {
 				case Some(skips) =>
 					rightCombinations.map { root =>
-						root.copy(children = root.children.flatMap { filterTree(_, skips) })
+						root.copy(children = root.children.flatMap { filterTree(_, skips) })(EqualsFunction.default)
 					}
 				case None => rightCombinations
 			}
 		}
 		
 		// This method should be called whenever left side branches are included in word combinations
-		def recordLeftBranches(rightWordIds: Vector[Int], leftBranches: Vector[Tree[CombinationPiece]]) =
-		{
-			if (leftBranches.nonEmpty)
-			{
+		def recordLeftBranches(rightWordIds: Vector[Int], leftBranches: Vector[Tree[CombinationPiece]]) = {
+			if (leftBranches.nonEmpty) {
 				// 3rd word and the following words are ignored on the right side
 				val rightChain = rightWordIds.take(2)
 				// Updates the skips based on the left side word id "chains", including the right chain also
 				val leftWordChains = leftBranches.flatMap { root =>
-					root.allBranches.map { chain => chain.map { _.wordId }.reverse :+ root.content.wordId } }
+					root.branchesBelowIterator.map { chain => chain.map { _.nav.wordId }.reverse :+ root.nav.wordId } }
 				skips ++= leftWordChains.groupMap { _.head } { _.tail }.map { case (head, tails) =>
 					val existingTails = skips.getOrElse(head, Vector())
 					head -> (existingTails ++ tails.map { _ ++ rightChain }).distinct
@@ -311,17 +308,15 @@ object CombineWords
 		private def filterTree(tree: Tree[CombinationPiece],
 		                        remainingSkips: Vector[Vector[Int]]): Option[Tree[CombinationPiece]] =
 		{
-			val applicableSkips = remainingSkips.filter { _.head == tree.content.wordId }
+			val applicableSkips = remainingSkips.filter { _.head == tree.nav.wordId }
 			
 			// Case: There may be skips
-			if (applicableSkips.nonEmpty)
-			{
+			if (applicableSkips.nonEmpty) {
 				// Case: All skip-triggering word ids found => skips this tree
 				if (applicableSkips.exists { _.size == 1 })
 					None
 				// Case: Needs to check for remaining word ids
-				else
-				{
+				else {
 					// Checks which children to skip (if any)
 					val remainingChildren = tree.children.flatMap { filterTree(_, applicableSkips.map { _.tail }) }
 					// Case: No children left => Keeps this node still (because it didn't match all the skip ids)
@@ -329,7 +324,7 @@ object CombineWords
 						Some(tree.withoutChildren)
 					// Case: Some of the branches may have been skipped while some remained
 					else
-						Some(tree.copy(children = remainingChildren))
+						Some(tree.copy(children = remainingChildren)(EqualsFunction.default))
 				}
 			}
 			// Case: There won't be skips

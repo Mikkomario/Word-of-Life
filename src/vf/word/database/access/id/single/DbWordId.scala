@@ -1,7 +1,7 @@
 package vf.word.database.access.id.single
 
 import utopia.vault.database.Connection
-import utopia.vault.nosql.access.SingleIntIdAccess
+import utopia.vault.nosql.access.single.column.SingleIntIdAccess
 import vf.word.database.WordTables
 import vf.word.database.model.text.WordModel
 import vf.word.model.enumeration.Capitalization

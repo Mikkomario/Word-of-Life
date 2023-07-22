@@ -1,6 +1,6 @@
 package vf.word.database.access.many.text
 
-import utopia.flow.datastructure.immutable.Model
+import utopia.flow.generic.model.immutable.Model
 import utopia.vault.database.Connection
 import utopia.vault.sql.Insert
 import vf.word.database.WordTables

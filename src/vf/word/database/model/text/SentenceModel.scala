@@ -1,6 +1,6 @@
 package vf.word.database.model.text
 
-import utopia.flow.generic.ValueConversions._
+import utopia.flow.generic.casting.ValueConversions._
 import utopia.vault.database.Connection
 import utopia.vault.model.immutable.Storable
 import utopia.vault.sql.Insert
@@ -25,8 +25,7 @@ object SentenceModel
 	 * @param connection DB Connection (implicit)
 	 * @return Newly inserted sentences
 	 */
-	def insert(data: Seq[(Int, Int)])(implicit connection: Connection) =
-	{
+	def insert(data: Seq[(Int, Int)])(implicit connection: Connection) = {
 		val ids = Insert(table, data.map { case (contextId, orderIndex) =>
 			apply(None, Some(contextId), Some(orderIndex)).toModel }).generatedIntKeys
 		ids.zip(data).map { case (id, (contextId, orderIndex)) => Sentence(id, contextId, orderIndex) }

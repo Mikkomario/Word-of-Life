@@ -1,6 +1,6 @@
 package vf.word.model.enumeration
 
-import utopia.flow.parse.Regex
+import utopia.flow.parse.string.Regex
 
 /**
  * An enumeration for different ways to capitalize words

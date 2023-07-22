@@ -1,6 +1,6 @@
 package vf.word.database.access.id.many
 
-import utopia.vault.nosql.access.ManyIntIdAccess
+import utopia.vault.nosql.access.many.column.ManyIntIdAccess
 import vf.word.database.WordTables
 
 /**

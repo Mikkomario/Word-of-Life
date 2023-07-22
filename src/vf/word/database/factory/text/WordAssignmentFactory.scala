@@ -1,8 +1,9 @@
 package vf.word.database.factory.text
 
-import utopia.flow.datastructure.immutable.{Constant, Model}
-import utopia.flow.generic.ValueUnwraps._
-import utopia.vault.nosql.factory.FromValidatedRowModelFactory
+import utopia.flow.generic.casting.ValueUnwraps._
+import utopia.flow.generic.model.immutable.Model
+import utopia.vault.nosql.factory.row.model.FromValidatedRowModelFactory
+import utopia.vault.sql.OrderBy
 import vf.word.database.WordTables
 import vf.word.model.cached.Location
 import vf.word.model.partial.text.WordAssignmentData
@@ -17,6 +18,9 @@ object WordAssignmentFactory extends FromValidatedRowModelFactory[WordAssignment
 {
 	override def table = WordTables.wordAssignment
 	
-	override protected def fromValidatedModel(model: Model[Constant]) = WordAssignment(model("id"),
+	// TODO: Change to use orderIndex -property (?)
+	override def defaultOrdering: Option[OrderBy] = None
+	
+	override protected def fromValidatedModel(model: Model) = WordAssignment(model("id"),
 		WordAssignmentData(model("wordId"), Location(model("locationId"), model("orderIndex"))))
 }

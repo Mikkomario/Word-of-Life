@@ -35,6 +35,6 @@ object DbWord
 		 * @return Assignments / locations of this word in all the texts
 		 */
 		def assignments(implicit connection: Connection) =
-			assignmentFactory.getMany(assignmentModel.withWordId(wordId).toCondition)
+			assignmentFactory.findMany(assignmentModel.withWordId(wordId).toCondition)
 	}
 }

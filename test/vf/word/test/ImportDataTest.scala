@@ -1,8 +1,7 @@
 package vf.word.test
 
-import utopia.flow.generic.DataType
-import utopia.flow.util.FileExtensions._
-import utopia.flow.util.TimeLogger
+import utopia.flow.parse.file.FileExtensions._
+import utopia.flow.util.logging.TimeLogger
 import utopia.vault.sql.Delete
 import utopia.vault.util.ErrorHandling
 import utopia.vault.util.ErrorHandlingPrinciple.Throw
@@ -19,9 +18,9 @@ import scala.util.{Failure, Success}
  */
 object ImportDataTest extends App
 {
-	DataType.setup()
 	ErrorHandling.defaultPrinciple = Throw
 	val logger = new TimeLogger()
+	// TODO: Add print calls for the logger
 	
 	logger.checkPoint("Opening DB Connection")
 	ConnectionPool { implicit connection =>

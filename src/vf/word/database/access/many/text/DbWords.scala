@@ -1,7 +1,8 @@
 package vf.word.database.access.many.text
 
 import utopia.vault.database.Connection
-import utopia.vault.nosql.access.{Indexed, ManyRowModelAccess}
+import utopia.vault.nosql.access.many.model.ManyRowModelAccess
+import utopia.vault.nosql.template.Indexed
 import vf.word.database.factory.text.WordFactory
 import vf.word.database.model.text.WordModel
 import vf.word.model.enumeration.Capitalization

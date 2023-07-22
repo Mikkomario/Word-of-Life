@@ -1,8 +1,7 @@
 package vf.word.test
 
-import utopia.flow.generic.DataType
-import utopia.flow.util.TimeLogger
-import utopia.vault.sql.{Delete, Limit}
+import utopia.flow.util.logging.TimeLogger
+import utopia.vault.sql.Delete
 import utopia.vault.util.ErrorHandling
 import utopia.vault.util.ErrorHandlingPrinciple.Throw
 import vf.word.controller.process.CombineWords
@@ -16,10 +15,10 @@ import vf.word.util.Globals.executionContext
  */
 object WordCombineTest extends App
 {
-	DataType.setup()
 	ErrorHandling.defaultPrinciple = Throw
 	
 	val logger = new TimeLogger()
+	// TODO: Add print calls for the logger
 	
 	ConnectionPool { implicit connection =>
 		logger.checkPoint("Deleting existing word combination assignments")

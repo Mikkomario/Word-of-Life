@@ -1,8 +1,9 @@
 package vf.word.database.factory.text
 
-import utopia.flow.datastructure.immutable.{Constant, Model}
-import utopia.flow.generic.ValueUnwraps._
-import utopia.vault.nosql.factory.FromValidatedRowModelFactory
+import utopia.flow.generic.casting.ValueUnwraps._
+import utopia.flow.generic.model.immutable.Model
+import utopia.vault.nosql.factory.row.model.FromValidatedRowModelFactory
+import utopia.vault.sql.OrderBy
 import vf.word.database.WordTables
 import vf.word.model.enumeration.Capitalization
 import vf.word.model.enumeration.Capitalization.Normal
@@ -17,6 +18,8 @@ object WordFactory extends FromValidatedRowModelFactory[Word]
 {
 	override def table = WordTables.word
 	
-	override protected def fromValidatedModel(model: Model[Constant]) = Word(model("id"), model("value"),
+	override def defaultOrdering: Option[OrderBy] = None
+	
+	override protected def fromValidatedModel(model: Model) = Word(model("id"), model("value"),
 		Capitalization.forId(model("capitalization")).getOrElse(Normal))
 }

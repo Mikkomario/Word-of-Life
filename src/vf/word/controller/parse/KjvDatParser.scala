@@ -1,10 +1,13 @@
 package vf.word.controller.parse
 
-import utopia.flow.datastructure.mutable.{PointerWithEvents, ResettableLazy}
-import utopia.flow.parse.{CsvReader, Regex}
-import utopia.flow.util.CollectionExtensions._
+import utopia.flow.collection.CollectionExtensions._
+import utopia.flow.operator.EqualsExtensions._
+import utopia.flow.parse.file.CsvReader
+import utopia.flow.parse.string.Regex
 import utopia.flow.util.ActionBuffer
 import utopia.flow.util.StringExtensions._
+import utopia.flow.view.mutable.caching.ResettableLazy
+import utopia.flow.view.mutable.eventful.PointerWithEvents
 import utopia.vault.database.Connection
 import vf.word.database.access.many.text.DbWritings
 import vf.word.database.model.address.{BookCodeModel, ChapterModel, VerseModel}
@@ -39,7 +42,7 @@ object KjvDatParser
 	private val partSeparatorRegex = Regex.anyOf(sentencePartSeparators.mkString(""))
 	private val segmentSeparatorRegex = Regex(",")
 	
-	private val parenthesisFillerRegex = (!Regex.escape(')')).zeroOrMoreTimes
+	private val parenthesisFillerRegex = (!Regex.escape(')')).anyTimes
 	private val sentenceEndingParenthesisRegex = Regex.escape('(') + parenthesisFillerRegex +
 		sentenceSeparatorRegex + parenthesisFillerRegex + Regex.escape(')')
 	private val partEndingParenthesisRegex = Regex.escape('(') + parenthesisFillerRegex + partSeparatorRegex +
@@ -239,42 +242,35 @@ object KjvDatParser
 		
 		// OTHER    ----------------------------
 		
-		def +=(line: VerseLine) =
-		{
+		def +=(line: VerseLine) ={
 			// Separates the parenthesis parts of the line
 			val parenthesisParts = separateParenthesisFrom(line.text, sentenceEndingParenthesisRegex)
 			// Adds the parts individually
 			val (firstPart, firstParenthesis) = parenthesisParts.head
 			// Checks whether an existing parenthesis segment ends within the first part
-			if (parenthesisOpenFlag && !firstParenthesis && firstPart.contains(')'))
-			{
+			if (parenthesisOpenFlag && !firstParenthesis && firstPart.contains(')')) {
 				parenthesisOpenFlag = false
 				
 				// If so, handles the first part in two parts
-				val (parenthesisPart, outsideParenthesisPart) = firstPart.splitAtFirst(")")
-				val trimmedParenthesisPart = parenthesisPart.trim
-				val trimmedOutsideParenthesisPart = outsideParenthesisPart.trim
-				addSentenceParenthesisPart(trimmedParenthesisPart, Some(line.address), parenthesis = true)
-				if (trimmedOutsideParenthesisPart.nonEmpty)
-				{
+				val (parenthesisPart, outsideParenthesisPart) = firstPart.splitAtFirst(")").map { _.trim }.toTuple
+				addSentenceParenthesisPart(parenthesisPart, Some(line.address), parenthesis = true)
+				if (outsideParenthesisPart.nonEmpty) {
 					// In case this is the last part, checks whether a parenthesis section starts but doesn't end
 					// there
 					if (parenthesisParts.size == 1)
-						addLastSentenceParenthesisPart(trimmedOutsideParenthesisPart, None, parenthesis = false)
+						addLastSentenceParenthesisPart(outsideParenthesisPart, None, parenthesis = false)
 					else
-						addSentenceParenthesisPart(trimmedOutsideParenthesisPart, None, parenthesis = false)
+						addSentenceParenthesisPart(outsideParenthesisPart, None, parenthesis = false)
 				}
 			}
-			else
-			{
+			else {
 				val actualFirstParenthesis = firstParenthesis || parenthesisOpenFlag
 				if (parenthesisParts.size == 1)
 					addLastSentenceParenthesisPart(firstPart, Some(line.address), actualFirstParenthesis)
 				else
 					addSentenceParenthesisPart(firstPart, Some(line.address), firstParenthesis || parenthesisOpenFlag)
 			}
-			if (parenthesisParts.size > 1)
-			{
+			if (parenthesisParts.size > 1) {
 				// Handles the last part separately, because it may start a parenthesis section and not end it
 				parenthesisParts.tail.dropRight(1).foreach { case (part, parenthesis) =>
 					addSentenceParenthesisPart(part, None, parenthesis)
@@ -285,16 +281,14 @@ object KjvDatParser
 		}
 		
 		// Retrieves completed sentences and prepares for the next ones
-		def takeSentences() =
-		{
+		def takeSentences() = {
 			val result = completeSentences
 			completeSentences = Vector()
 			result
 		}
 		
 		// Ends the book etc. and returns the last sentences
-		def closeAndTake() =
-		{
+		def closeAndTake() = {
 			closeSentence()
 			takeSentences()
 		}
@@ -348,15 +342,13 @@ object KjvDatParser
 			}
 		}
 		
-		private def addSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean) =
-		{
+		private def addSentenceParenthesisPart(text: String, address: Option[Address], parenthesis: Boolean) = {
 			// Checks how many sentences the text contains
-			val sentences = sentenceSeparatorRegex.divide(text).map { _.trim }.filterNot { _.isEmpty }
+			val sentences = sentenceSeparatorRegex.separate(text).map { _.trim }.filterNot { _.isEmpty }
 			// Processes the sentences. However, the last sentence may not always complete.
 			addSentence(sentences.head, address, parenthesis,
 				sentences.size > 1 || sentenceSeparators.contains(sentences.head.last))
-			if (sentences.size > 1)
-			{
+			if (sentences.size > 1) {
 				sentences.tail.dropRight(1).foreach { addSentence(_, None, parenthesis, complete = true) }
 				addSentence(sentences.last, None, parenthesis, sentenceSeparators.contains(sentences.last.last))
 			}
@@ -381,7 +373,7 @@ object KjvDatParser
 			// Separates the parts based on the normal regex
 			// Text + parenthesis + completes
 			val parts = parenthesisParts.flatMap { case (text, parenthesis, completes) =>
-				val parts = partSeparatorRegex.divide(text).map { _.trim }
+				val parts = partSeparatorRegex.separate(text).map { _.trim }
 				parts.dropRight(1).map { part => (part, parenthesis, true) } :+ (parts.last, parenthesis, completes)
 			}
 			
@@ -400,11 +392,9 @@ object KjvDatParser
 			}
 		}
 		
-		private def addPart(part: String, address: Option[Address], parenthesis: Boolean, complete: Boolean) =
-		{
+		private def addPart(part: String, address: Option[Address], parenthesis: Boolean, complete: Boolean) = {
 			// Checks whether there are some segments in parenthesis
-			val parenthesisSegments =
-			{
+			val parenthesisSegments = {
 				if (parenthesis)
 					Vector(part -> parenthesis)
 				else
@@ -413,7 +403,7 @@ object KjvDatParser
 			// Nex splits based on segment separator (removes ")," -cases)
 			// All segments
 			val segments = parenthesisSegments.flatMap { case (text, parenthesis) =>
-				segmentSeparatorRegex.divide(text).map { _.trim }
+				segmentSeparatorRegex.separate(text).map { _.trim }
 					.filterNot { t => t.isEmpty || (t.length == 1 && allSeparators.contains(t.head)) }
 					.map { _ -> parenthesis }
 			}
@@ -498,14 +488,12 @@ object KjvDatParser
 		
 		// OTHER    ---------------------------------
 		
-		def record(segments: Vector[(Int, String)])(implicit connection: Connection): Unit =
-		{
+		def record(segments: Vector[(Int, String)])(implicit connection: Connection): Unit = {
 			// Starts by splitting the segments to individual words
 			val segmentWords = segments.map { case (segmentId, text) =>
 				val targetText = if (allSeparators.contains(text.last)) text.dropRight(1) else text
 				val words = Regex.whiteSpace.split(targetText).toVector.map { _.trim }.filterNot { _.isEmpty }
-				if (words.isEmpty)
-				{
+				if (words.isEmpty) {
 					println(s"Problem in segment $segmentId: '$text' because it contains no words")
 					throw new IllegalArgumentException("No words in segment")
 				}
@@ -559,8 +547,7 @@ object KjvDatParser
 		private def idForWord(word: String) =
 			wordIdsPointer.value.getOrElse(word, wordIdsPointer.value(word.toLowerCase))
 		
-		private def attemptToResolveWith(words: Set[String])(implicit connection: Connection) =
-		{
+		private def attemptToResolveWith(words: Set[String])(implicit connection: Connection) = {
 			// Checks whether some of the ambiguous words got resolved
 			val resolves = words.flatMap { word => _ambiguousWords.find { _.value ~== word }.map { _ -> word } }
 			// Updates the resolved word capitalization where necessary
@@ -570,8 +557,7 @@ object KjvDatParser
 					WordModel.withId(original.id).withValue(newVersion).withCapitalization(correctCapitalization)
 						.update()
 			}
-			if (resolves.nonEmpty)
-			{
+			if (resolves.nonEmpty) {
 				// Also updates the casing in the word id map
 				wordIdsPointer.update { _ -- resolves.map { _._1.value } ++
 					resolves.map { case (word, spelling) => spelling -> word.id } }
