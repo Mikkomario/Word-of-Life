@@ -5,6 +5,7 @@ package vf.word.model.enumeration
  * @author Mikko Hilpinen
  * @since 30.4.2021, v0.2
  */
+// TODO: Replace with End?
 sealed trait WordSide
 {
 	/**

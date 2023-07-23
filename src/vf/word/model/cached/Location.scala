@@ -51,8 +51,7 @@ case class Location(targetId: Int, orderIndex: Int)
 	 * @param direction Advancing direction
 	 * @return A location towards that direction
 	 */
-	def towards(direction: WordSide) = direction match
-	{
+	def towards(direction: WordSide) = direction match {
 		case WordSide.Left => previous
 		case WordSide.Right => next
 	}

@@ -28,6 +28,9 @@ import scala.collection.immutable.VectorBuilder
  * @author Mikko Hilpinen
  * @since 23.4.2021, v0.1
  */
+// TODO: Separate into two algorithms:
+//      1) A more generic algorithm that accepts text data (e.g. verses, sentences etc.) and stores it in the database, and
+//      2) An algorithm that parses this information from a .dat file (other versions for pdfs etc.)
 object KjvDatParser
 {
 	// ATTRIBUTES   ---------------------------
