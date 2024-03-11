@@ -24,7 +24,7 @@ object DbWords extends ManyRowModelAccess[Word] with Indexed
 	
 	override def factory = WordFactory
 	
-	override def globalCondition = None
+	override def accessCondition = None
 	
 	
 	// OTHER    ---------------------------------
@@ -54,6 +54,6 @@ object DbWords extends ManyRowModelAccess[Word] with Indexed
 		
 		override def factory = DbWords.factory
 		
-		override def globalCondition = Some(model.withCapitalization(capitalization).toCondition)
+		override def accessCondition = Some(model.withCapitalization(capitalization).toCondition)
 	}
 }

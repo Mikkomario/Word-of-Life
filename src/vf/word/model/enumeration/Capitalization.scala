@@ -35,7 +35,7 @@ object Capitalization
 	{
 		if (word.isEmpty)
 			Normal
-		else if (word.takeWhile { c => Regex.alpha(c.toString) }.forall { _.isUpper })
+		else if (word.takeWhile { c => Regex.letter(c.toString) }.forall { _.isUpper })
 		{
 			if (word.length == 1) AlwaysCapitalize else AllCaps
 		}

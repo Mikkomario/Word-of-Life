@@ -1,13 +1,13 @@
 package vf.word.controller.parse
 
 import utopia.flow.collection.CollectionExtensions._
-import utopia.flow.operator.EqualsExtensions._
+import utopia.flow.operator.equality.EqualsExtensions._
 import utopia.flow.parse.file.CsvReader
 import utopia.flow.parse.string.Regex
 import utopia.flow.util.ActionBuffer
 import utopia.flow.util.StringExtensions._
 import utopia.flow.view.mutable.caching.ResettableLazy
-import utopia.flow.view.mutable.eventful.PointerWithEvents
+import utopia.flow.view.mutable.eventful.EventfulPointer
 import utopia.vault.database.Connection
 import vf.word.database.access.many.text.DbWritings
 import vf.word.database.model.address.{BookCodeModel, ChapterModel, VerseModel}
@@ -180,7 +180,7 @@ object KjvDatParser
 		}
 	}
 	
-	private def separateParenthesisFrom(str: String, regex: Regex = Regex.parenthesis) =
+	private def separateParenthesisFrom(str: String, regex: Regex = Regex.parentheses) =
 	{
 		val matcher = regex.pattern.matcher(str)
 		val builder = new VectorBuilder[(String, Boolean)]()
@@ -476,7 +476,7 @@ object KjvDatParser
 	{
 		// ATTRIBUTES   -----------------------------
 		
-		private val wordIdsPointer = new PointerWithEvents(Map[String, Int]())
+		private val wordIdsPointer = EventfulPointer(Map[String, Int]())
 		private var _ambiguousWords = Set[Word]()
 		
 		private val savedWordsPointer = wordIdsPointer.map { _.keySet }

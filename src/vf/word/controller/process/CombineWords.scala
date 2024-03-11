@@ -3,7 +3,7 @@ package vf.word.controller.process
 import utopia.flow.collection.immutable.Tree
 import utopia.flow.util.ActionBuffer
 import utopia.flow.collection.CollectionExtensions._
-import utopia.flow.operator.EqualsFunction
+import utopia.flow.operator.equality.EqualsFunction
 import utopia.vault.database.Connection
 import utopia.vault.sql.Condition
 import vf.word.database.access.many.text.DbWords
@@ -87,14 +87,23 @@ object CombineWords
 		// Also collects the leftward results
 		// (which need to be reversed because the word ids are listed from right to left)
 		val leftTrees = leftCombinations.flatMap { node =>
+			// Checks whether the specified node is associated with this root node
+			// FIXME: This is likely wrong. findBranches was removed from Flow
+			//  and I can't determine what was the original intent here. Hopefully this fix will work.
+			node.filterWithPaths { _.nav.headAssignments
+					.existsCount(minimumCombinationOccurrence)(rootHeadAssignments.contains) }
+				.map { _.last }
+			
+			/*
 			// Case: The left root is associated with this node
 			if (node.nav.headAssignments.existsCount(minimumCombinationOccurrence)(rootHeadAssignments.contains))
 				Vector(node)
 			// Case: Some of the left child nodes may be associated with this node
-			// TODO: Replace .findBranches with something better
 			else
-				node.findBranches { _.nav.headAssignments
+				node.filterWithPaths { _.nav.headAssignments
 					.existsCount(minimumCombinationOccurrence)(rootHeadAssignments.contains) }
+					.map { _.last }
+			 */
 		}
 		// Records the left side branches to the duplicate checker also
 		duplicateChecker.recordLeftBranches(wordIds, leftTrees)

@@ -15,5 +15,5 @@ object DbWordIds extends ManyIntIdAccess
 	override def table = WordTables.word
 	override def target = table
 	
-	override def globalCondition = None
+	override def accessCondition = None
 }

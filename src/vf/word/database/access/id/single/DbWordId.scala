@@ -24,7 +24,7 @@ object DbWordId extends SingleIntIdAccess
 	
 	override def target = table
 	
-	override def globalCondition = None
+	override def accessCondition = None
 	
 	
 	// OTHER    ----------------------------
