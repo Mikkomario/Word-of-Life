@@ -38,7 +38,7 @@ class ChapterBuilder(initialChapterIndex: Int) extends mutable.Builder[String, C
 	private val lineBuilder = new VectorBuilder[String]()
 	
 	// Verse being currently written
-	private var openVerseMarker = -1
+	private var openVerseMarker = 1
 	// If the previous line didn't finish the last statement, it is stored here
 	// Includes the separator before the next word/part, if applicable
 	private var openStatement = ""
@@ -66,7 +66,7 @@ class ChapterBuilder(initialChapterIndex: Int) extends mutable.Builder[String, C
 		// Finishes the current line and verse
 		newLine()
 		openStatement.notEmpty.foreach { t => verseBuilder ++= StatementText.allFrom(t) }
-		completeVerse()
+		completeVerse(newVerseIndex = 1)
 		
 		ChapterText(chapterIndex, versesBuilder.result())
 	}
@@ -144,21 +144,28 @@ class ChapterBuilder(initialChapterIndex: Int) extends mutable.Builder[String, C
 	}
 	
 	/**
-	 * Finishes writing the currently open chapter and starts the next chapter
+	 * Finishes writing the currently open chapter and starts the next chapter.
+	 * Will not close / finish the current line.
+	 * Assumes that the currently open line is part of the new chapter instead.
 	 * @param nextChapterIndex The next chapter index. Default = The index that follows the current chapter index.
 	 * @return Currently built chapter.
 	 */
+	//noinspection ScalaUnusedExpression
 	def finishChapter(nextChapterIndex: Int = chapterIndex + 1) = {
-		val res = result()
-		clear()
+		completeVerse(newVerseIndex = 1)
+		val chapter = ChapterText(chapterIndex, versesBuilder.result())
+		versesBuilder.clear()
+		verseMayStopBeforeNewLineFlag.set()
 		chapterIndex = nextChapterIndex
-		res
+		chapter
 	}
 	
 	//noinspection ScalaUnusedExpression
 	private def completeVerse(newVerseIndex: Int = openVerseMarker + 1) = {
-		versesBuilder += VerseText(openVerseMarker, verseBuilder.result())
-		verseBuilder.clear()
+		if (verseBuilder.nonEmpty) {
+			versesBuilder += VerseText(openVerseMarker, verseBuilder.result())
+			verseBuilder.clear()
+		}
 		openVerseMarker = newVerseIndex
 	}
 }

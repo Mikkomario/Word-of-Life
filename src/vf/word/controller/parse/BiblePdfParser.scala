@@ -2,15 +2,13 @@ package vf.word.controller.parse
 
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
-import utopia.flow.collection.mutable.builder.CompoundingVectorBuilder
 import utopia.flow.generic.casting.ValueConversions._
 import utopia.flow.parse.AutoClose._
 import utopia.flow.parse.string.Regex
-import vf.word.model.cached.RomanNumeral
+import vf.word.model.cached.{ChapterText, RomanNumeral}
 
 import java.nio.file.Path
 import java.util
-import scala.collection.immutable.VectorBuilder
 
 /**
  * Extracts Bible text information from a pdf file
@@ -20,10 +18,6 @@ import scala.collection.immutable.VectorBuilder
 object BiblePdfParser
 {
 	// ATTRIBUTES   -----------------------
-	
-	private val periodRegex = Regex.escape('.')
-	private val referenceStartRegex = Regex.digit.oneOrMoreTimes + periodRegex
-	
 	
 	// TODO: Implement a proper version of this function once the models are up-to-date. This is merely for testing pdf-reading.
 	/*
@@ -130,7 +124,8 @@ object BiblePdfParser
 		val referenceStart = (Regex.digit.oneOrMoreTimes + period).withinParenthesis ||
 			(Regex("v") + period + Regex.digit.oneOrMoreTimes).withinParenthesis
 		
-		val highPriorityVerseSplitter = Regex.anyOf(".;!?")
+		// TODO: Implement prioritized verse-splitting
+		// val highPriorityVerseSplitter = Regex.anyOf(".;!?")
 	}
 	
 	// private case class Line()
@@ -140,19 +135,11 @@ object BiblePdfParser
 		// ATTRIBUTES   ---------------------
 		
 		private var lastLineY = 10000f
-		private var chapterMarker: Option[Int] = None
 		// Assumes that every page starts with a header
 		private var headerFlag = true
 		private var referencesFlag = false
 		
-		private val lineBuilder = new StringBuilder()
-		// First value is the word index BEFORE which the verse marker appears (e.g. 0 would be at line beginning)
-		// Second value is the verse number itself
-		private val verseMarkersBuilder = new VectorBuilder[Int]()
-		
-		private var queuedVerseMarker: Option[Int] = None
-		
-		// TODO: Add chapter and verse-building
+		private val builder = new ChapterBuilder(1)
 		
 		
 		// IMPLEMENTED  -----------------------
@@ -188,13 +175,14 @@ object BiblePdfParser
 				if (!headerFlag)
 					processNormally(text, number, fontSize)
 			}
+			// Case: New line
 			else {
-				// TODO: Process the collected line
+				builder.newLine()
 				
 				// Case: New page => Ignores the first line
 				if (y < lastLineY)
 					headerFlag = true
-				// Case: New line
+				// Case: Next line
 				else {
 					// Checks whether a header continues
 					if (headerFlag && fontSize < headerFontSize)
@@ -204,7 +192,7 @@ object BiblePdfParser
 						// Case: Reference section starts => Remembers it and continues processing normally
 						if (Expressions.referenceStart(text)) {
 							referencesFlag = true
-							lineBuilder += text
+							builder += text
 						}
 						// Case: Normal new line => Processes normally
 						else
@@ -225,27 +213,30 @@ object BiblePdfParser
 		
 		// OTHER    ----------------------
 		
-		private def buildLine() = {
-			// TODO: Implement
-		}
+		// TODO: Add a function for finalizing the last chapter before closing the document
 		
 		// Processes an individual word / text element
 		// Checks for verse markers, chapter markers, etc.
 		private def processNormally(text: String, number: => Option[Int], fontSize: => Float) = {
+			// TODO: Handle the references section separately
 			// Case: Reference section or a normal font element => Appends the text for later processing
 			if (referencesFlag || fontSize == defaultFontSize)
-				lineBuilder += text
+				builder += text
 			// Case: Small font element => Checks for a verse marker
 			else if (fontSize < defaultFontSize)
 				number match {
 					// Case: Verse marker => Remembers its position
-					case Some(number) => verseMarkersBuilder += (lineBuilder.size -> number)
+					case Some(number) => builder.addVerseMarker(number)
 					// Case: Not a verse marker but other lower size element => Treats as text
-					case None => lineBuilder += text
+					case None => builder += text
 				}
 			// Case: Larger font element => Expects a chapter marker. Ignores others.
 			else
-				number.foreach { n => chapterMarker = Some(n) }
+				number.foreach { n => storeChapter(builder.finishChapter(n)) }
+		}
+		
+		private def storeChapter(chapter: ChapterText) = {
+			// TODO: Implement
 		}
 	}
 }
