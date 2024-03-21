@@ -1,0 +1,166 @@
+{
+  "project": "WordOfLife",
+  "version": "v0.2",
+  "database": "word",
+  "author": "Mikko Hilpinen",
+  "enums": [
+    {
+      "name": "Book",
+      "doc": "An enumeration for different books that appear within the Bible",
+      "values": [
+        "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+        "Joshua", "Judges", "Ruth",
+        "Samuel1", "Samuel2", "Kings1", "Kings2", "Chronicles1", "Chronicles2",
+        "Ezra", "Nehemiah", "Esther", "Job",
+        "Psalms", "Proverbs", "Ecclesiastes", "SongOfSolomon",
+        "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel",
+        "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk",
+        "Zephaniah", "Haggai", "Zechariah", "Malachi",
+        "Matthew", "Mark", "Luke", "John", "Acts",
+        "Romans", "Corinthians1", "Corinthians2", "Galatians",
+        "Ephesians", "Philippians", "Colossians",
+        "Thessalonians1", "Thessalonians2", "Timothy1", "Timothy2", "Titus", "Philemon",
+        "Hebrews", "James", "Peter1", "Peter2", "John1", "John2", "John3", "Jude", "Revelation"
+      ]
+    }
+  ],
+  "classes": {
+    "bible": [
+      {
+        "name": "Translation",
+        "doc": "Represents a Bible translation",
+        "props": [
+          {
+            "name": "name",
+            "type": "NonEmptyString(16-255)",
+            "doc": "Name of this translation",
+            "index": true
+          },
+          {
+            "name": "abbreviation",
+            "type": "String(3-64)",
+            "doc": "A shortened version of this translation's name. \nEmpty if there is no abbreviation.",
+            "index": true
+          },
+          {
+            "type": "creation",
+            "index": false,
+            "doc": "Time when this translation was added to this database"
+          }
+        ]
+      },
+      {
+        "name": "BookTranslation",
+        "doc": "Represents a translated book of the Bible",
+        "combo": {
+          "name": "ContextualBook",
+          "child": "Translation",
+          "is_always_linked": true,
+          "doc": "Includes information about this book's translation"
+        },
+        "props": [
+          {
+            "name": "book",
+            "type": "Enum[Book]",
+            "doc": "The translated book",
+            "index": true
+          },
+          {
+            "ref": "translation",
+            "doc": "Id of the translation this book is part of"
+          }
+        ]
+      },
+      {
+        "name": "BookStatementLink",
+        "doc": "Lists the statements made within a book",
+        "combo": {
+          "name": "VerseBeginningStatementLink",
+          "child": "VerseMarker",
+          "is_always_linked": true,
+          "doc": "Represents a statement link that begins a verse. Includes verse marker information."
+        },
+        "combo_index": ["bookId", "orderIndex"],
+        "props": [
+          {
+            "ref": "book_translation",
+            "name": "bookId",
+            "doc": "Id of the book where the statement appears"
+          },
+          {
+            "ref": "statement",
+            "doc": "Id of the statement made"
+          },
+          {
+            "name": "orderIndex",
+            "type": "Int",
+            "doc": "Index that indicates, where in the book the linked statement appears"
+          }
+        ]
+      },
+      {
+        "name": "VerseMarker",
+        "doc": "Locates a verse marker within a text",
+        "combo_index": ["chapterIndex", "verseIndex"],
+        "props": [
+          {
+            "name": "chapterIndex",
+            "doc": "A 1-based index that indicates which chapter this verse belongs to"
+          },
+          {
+            "name": "verseIndex",
+            "doc": "A 1-based index that indicates which verse this is"
+          },
+          {
+            "ref": "book_statement_link",
+            "name": "firstStatementId",
+            "doc": "Id of the book statement that starts this verse"
+          }
+        ]
+      },
+      {
+        "name": "Footnote",
+        "doc": "Represents a foot note made within the original text, concerning a specific word or a statement within the test",
+        "combo": {
+          "name": "FootnoteWithLinks",
+          "doc": "A footnote which includes links to the statements made",
+          "children": "FootnoteStatementLink",
+          "is_always_linked": true,
+          "child_alias": "link",
+          "children_alias": "links"
+        },
+        "props": [
+          {
+            "ref": "book_statement_link",
+            "name": "commentedStatementId",
+            "doc": "Id of the specific statement this footnote comments on"
+          },
+          {
+            "name": "targetedWordIndex",
+            "type": "Option[Int]",
+            "doc": "A 0-based index that specifies the word targeted within this statement. None if no specific word was targeted."
+          }
+        ]
+      },
+      {
+        "name": "FootnoteStatementLink",
+        "doc": "Links a footnote to a statement made within it",
+        "combo_index": ["footnoteId", "orderIndex"],
+        "props": [
+          {
+            "ref": "footnote",
+            "doc": "Id of the footnote where the statement is made"
+          },
+          {
+            "ref": "statement",
+            "doc": "Id of the statement made within the footnote"
+          },
+          {
+            "name": "orderIndex",
+            "doc": "A 0-based index that determines where the statement appears within the footnote"
+          }
+        ]
+      }
+    ]
+  }
+}
