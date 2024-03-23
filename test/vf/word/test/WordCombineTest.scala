@@ -6,7 +6,7 @@ import utopia.vault.util.ErrorHandling
 import utopia.vault.util.ErrorHandlingPrinciple.Throw
 import vf.word.controller.process.CombineWords
 import vf.word.database.{ConnectionPool, WordTables}
-import vf.word.util.Globals.executionContext
+import vf.word.util.Common._
 
 /**
  * Tests word combination

@@ -219,7 +219,7 @@ object BiblePdfParser
 		// Checks for verse markers, chapter markers, etc.
 		private def processNormally(text: String, number: => Option[Int], fontSize: => Float) = {
 			// TODO: Handle the references section separately
-			// TODO: Also process * marks
+			
 			// Case: Reference section or a normal font element => Appends the text for later processing
 			if (referencesFlag || fontSize == defaultFontSize)
 				builder += text
@@ -238,6 +238,7 @@ object BiblePdfParser
 		
 		private def storeChapter(chapter: ChapterText) = {
 			// TODO: Implement
+			// TODO: Process the * marks
 		}
 	}
 }

@@ -7,7 +7,7 @@ import utopia.vault.util.ErrorHandling
 import utopia.vault.util.ErrorHandlingPrinciple.Throw
 import vf.word.controller.parse.KjvDatParser
 import vf.word.database.{ConnectionPool, WordTables}
-import vf.word.util.Globals._
+import vf.word.util.Common._
 
 import scala.util.{Failure, Success}
 

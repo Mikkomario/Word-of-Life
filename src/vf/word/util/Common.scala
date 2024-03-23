@@ -2,6 +2,8 @@ package vf.word.util
 
 import utopia.flow.async.context.ThreadPool
 import utopia.flow.util.logging.{Logger, SysErrLogger}
+import utopia.vault.database.ConnectionPool
+import vf.word.database.ConnectionPool
 
 import scala.concurrent.ExecutionContext
 
@@ -10,8 +12,7 @@ import scala.concurrent.ExecutionContext
  * @author Mikko Hilpinen
  * @since 23.4.2021, v0.1
  */
-// TODO: Rename to Common
-object Globals
+object Common
 {
 	// ATTRIBUTES   ------------------------------
 	
@@ -22,14 +23,14 @@ object Globals
 	/**
 	 * The thread pool used in this project
 	 */
-	// TODO: No need for separate ThreadPool and ExecutionContext values
-	val threadPool = new ThreadPool("word")
-	
-	
-	// IMPLICIT ----------------------------------
+	implicit val threadPool: ThreadPool = new ThreadPool("word")
+	/**
+	 * Connection pool used for constructing database-connections
+	 */
+	implicit val cPool: ConnectionPool = new ConnectionPool()
 	
 	/**
-	 * @return Implicit execution context used in this project
+	 * Name of the database used
 	 */
-	implicit def executionContext: ExecutionContext = threadPool
+	val dbName = "word"
 }

@@ -2,6 +2,7 @@
   "project": "WordOfLife",
   "version": "v0.2",
   "database": "word",
+  "package": "vf.word",
   "author": "Mikko Hilpinen",
   "enums": [
     {
@@ -33,6 +34,7 @@
           {
             "name": "name",
             "type": "NonEmptyString(16-255)",
+            "in": "withNames",
             "doc": "Name of this translation",
             "index": true
           },
@@ -62,6 +64,8 @@
           {
             "name": "book",
             "type": "Enum[Book]",
+            "with": "apply",
+            "in": "in",
             "doc": "The translated book",
             "index": true
           },
@@ -85,15 +89,22 @@
           {
             "ref": "book_translation",
             "name": "bookId",
+            "with": "inBook",
+            "in": "inBooks",
             "doc": "Id of the book where the statement appears"
           },
           {
             "ref": "statement",
+            "with": "toStatement",
+            "in": "toStatements",
             "doc": "Id of the statement made"
           },
           {
             "name": "orderIndex",
+            "name_plural": "orderIndices",
             "type": "Int",
+            "with": "at",
+            "in": "atIndices",
             "doc": "Index that indicates, where in the book the linked statement appears"
           }
         ]
@@ -105,10 +116,16 @@
         "props": [
           {
             "name": "chapterIndex",
+            "name_plural": "chapterIndices",
+            "with": "inChapter",
+            "in": "inChapters",
             "doc": "A 1-based index that indicates which chapter this verse belongs to"
           },
           {
             "name": "verseIndex",
+            "name_plural": "verseIndices",
+            "with": "withIndex",
+            "in": "withIndices",
             "doc": "A 1-based index that indicates which verse this is"
           },
           {
@@ -123,6 +140,7 @@
         "doc": "Represents a foot note made within the original text, concerning a specific word or a statement within the test",
         "combo": {
           "name": "FootnoteWithLinks",
+          "name_plural": "FootnotesWithLinks",
           "doc": "A footnote which includes links to the statements made",
           "children": "FootnoteStatementLink",
           "is_always_linked": true,
@@ -133,6 +151,8 @@
           {
             "ref": "book_statement_link",
             "name": "commentedStatementId",
+            "with": "forStatement",
+            "in": "forStatements",
             "doc": "Id of the specific statement this footnote comments on"
           },
           {
@@ -149,14 +169,21 @@
         "props": [
           {
             "ref": "footnote",
+            "with": "inFootnote",
+            "in": "inFootnotes",
             "doc": "Id of the footnote where the statement is made"
           },
           {
             "ref": "statement",
+            "with": "toStatement",
+            "in": "toStatements",
             "doc": "Id of the statement made within the footnote"
           },
           {
             "name": "orderIndex",
+            "name_plural": "orderIndices",
+            "with": "at",
+            "in": "atIndices",
             "doc": "A 0-based index that determines where the statement appears within the footnote"
           }
         ]

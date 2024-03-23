@@ -1,21 +1,13 @@
 package vf.word.database
 
-import utopia.vault.database.Tables
-import vf.word.util.Globals.executionContext
-
 /**
  * An access point to tables that are used in this project
  * @author Mikko Hilpinen
  * @since 23.4.2021, v0.1
  */
+@deprecated("Replaced with WordOfLifeTables", "v0.2")
 object WordTables
 {
-	// ATTRIBUTES   ---------------------------
-	
-	private val tables = new Tables(ConnectionPool)
-	private val databaseName = "living_word_database"
-	
-	
 	// COMPUTED -------------------------------
 	
 	/**
@@ -76,5 +68,5 @@ object WordTables
 	
 	// OTHER    -------------------------------
 	
-	private def apply(tableName: String) = tables(databaseName, tableName)
+	private def apply(tableName: String) = WordOfLifeTables(tableName)
 }
