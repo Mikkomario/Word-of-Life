@@ -2,13 +2,16 @@ package vf.word.controller.parse
 
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
+import utopia.flow.collection.mutable.builder.ZipBuilder
 import utopia.flow.generic.casting.ValueConversions._
 import utopia.flow.parse.AutoClose._
 import utopia.flow.parse.string.Regex
 import vf.word.model.cached.{ChapterText, RomanNumeral}
+import vf.word.model.partial.bible.FootnoteData
 
 import java.nio.file.Path
 import java.util
+import scala.collection.immutable.VectorBuilder
 
 /**
  * Extracts Bible text information from a pdf file
@@ -121,8 +124,10 @@ object BiblePdfParser
 		val period = Regex.escape('.')
 		
 		// A reference may start with a chapter marker. e.g. 1. or a verse marker, e.g. v.7
-		val referenceStart = (Regex.digit.oneOrMoreTimes + period).withinParenthesis ||
-			(Regex("v") + period + Regex.digit.oneOrMoreTimes).withinParenthesis
+		val referenceStart = {
+			val verseMarker = (Regex("v") + period + Regex.digit.oneOrMoreTimes).withinParenthesis
+			(Regex.digit.oneOrMoreTimes + period + verseMarker.noneOrOnce).withinParenthesis || verseMarker
+		}
 		
 		// TODO: Implement prioritized verse-splitting
 		// val highPriorityVerseSplitter = Regex.anyOf(".;!?")
@@ -140,6 +145,10 @@ object BiblePdfParser
 		private var referencesFlag = false
 		
 		private val builder = new ChapterBuilder(1)
+		private val referenceTextBuilder = new VectorBuilder[String]()
+		// Collects foot note data (reference + text)
+		// Intended to be processed once the book completes
+		private val footnotesBuilder = ZipBuilder.zip[FootnoteData, String]()
 		
 		
 		// IMPLEMENTED  -----------------------
@@ -179,9 +188,11 @@ object BiblePdfParser
 			else {
 				builder.newLine()
 				
-				// Case: New page => Ignores the first line
-				if (y < lastLineY)
+				// Case: New page => Processes the references from the last page and ignores the first line
+				if (y < lastLineY) {
+					processReferences()
 					headerFlag = true
+				}
 				// Case: Next line
 				else {
 					// Checks whether a header continues
@@ -218,10 +229,12 @@ object BiblePdfParser
 		// Processes an individual word / text element
 		// Checks for verse markers, chapter markers, etc.
 		private def processNormally(text: String, number: => Option[Int], fontSize: => Float) = {
-			// TODO: Handle the references section separately
-			
-			// Case: Reference section or a normal font element => Appends the text for later processing
-			if (referencesFlag || fontSize == defaultFontSize)
+			// Case: Writing the reference section => Collects reference text separately
+			// (processes once section completes)
+			if (referencesFlag)
+				referenceTextBuilder += text
+			// Case: Normal font element => Appends the text for later processing
+			else if (fontSize == defaultFontSize)
 				builder += text
 			// Case: Small font element => Checks for a verse marker
 			else if (fontSize < defaultFontSize)
@@ -234,6 +247,13 @@ object BiblePdfParser
 			// Case: Larger font element => Expects a chapter marker. Ignores others.
 			else
 				number.foreach { n => storeChapter(builder.finishChapter(n)) }
+		}
+		
+		// TODO: Implement and call this from new page start (& finalization)
+		private def processReferences() = {
+			val referencesText = referenceTextBuilder.result().mkString(" ")
+			referenceTextBuilder.clear()
+			val references = Expressions.referenceStart.split(referencesText).map { _.trim }.filter { _.nonEmpty }
 		}
 		
 		private def storeChapter(chapter: ChapterText) = {
