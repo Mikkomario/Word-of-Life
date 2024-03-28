@@ -2,16 +2,24 @@ package vf.word.controller.parse
 
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
+import utopia.flow.collection.immutable.Pair
 import utopia.flow.collection.mutable.builder.ZipBuilder
+import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.generic.casting.ValueConversions._
 import utopia.flow.parse.AutoClose._
 import utopia.flow.parse.string.Regex
+import utopia.logos.database.access.many.word.statement.DbStatements
+import utopia.logos.model.cached.StatementText
+import utopia.vault.database.{Connection, ConnectionPool}
+import vf.word.database.storable.bible.{BookStatementLinkModel, BookTranslationModel, FootnoteModel, FootnoteStatementLinkModel, VerseMarkerModel}
 import vf.word.model.cached.{ChapterText, RomanNumeral}
-import vf.word.model.partial.bible.FootnoteData
+import vf.word.model.enumeration.Book
+import vf.word.model.partial.bible.{BookStatementLinkData, BookTranslationData, FootnoteData, FootnoteStatementLinkData, VerseMarkerData}
 
 import java.nio.file.Path
 import java.util
 import scala.collection.immutable.VectorBuilder
+import scala.concurrent.ExecutionContext
 
 /**
  * Extracts Bible text information from a pdf file
@@ -22,97 +30,46 @@ object BiblePdfParser
 {
 	// ATTRIBUTES   -----------------------
 	
-	// TODO: Implement a proper version of this function once the models are up-to-date. This is merely for testing pdf-reading.
-	/*
-	package arspdfbox;
-
-	import java.io.*;
-	import org.apache.pdfbox.exceptions.InvalidPasswordException;
-
-	import org.apache.pdfbox.pdmodel.PDDocument;
-	import org.apache.pdfbox.pdmodel.PDPage;
-	import org.apache.pdfbox.pdmodel.common.PDStream;
-	import org.apache.pdfbox.util.PDFTextStripper;
-	import org.apache.pdfbox.util.TextPosition;
-	import java.io.IOException;
-	import java.util.List;
-
-	public class PrintTextLocations extends PDFTextStripper {
-
-		public PrintTextLocations() throws IOException {
-			super.setSortByPosition(true);
-		}
-
-		public static void main(String[] args) throws Exception {
-
-			PDDocument document = null;
-			try {
-				File input = new File("Stedman_Medical_Dictionary.pdf");
-				//File input = new File("results/FontExample5.pdf");
-				document = PDDocument.load(input);
-				if (document.isEncrypted()) {
-					try {
-						document.decrypt("");
-					} catch (InvalidPasswordException e) {
-						System.err.println("Error: Document is encrypted with a password.");
-						System.exit(1);
-					}
-				}
-				PrintTextLocations printer = new PrintTextLocations();
-				List allPages = document.getDocumentCatalog().getAllPages();
-				//for (int i = 0; i < allPages.size(); i++) {
-				for (int i = 99; i < 100; i++) {
-					PDPage page = (PDPage) allPages.get(i);
-					System.out.println("Processing page: " + i);
-					PDStream contents = page.getContents();
-					if (contents != null) {
-						printer.processStream(page, page.findResources(), page.getContents().getStream());
-					}
-				}
-			} finally {
-				if (document != null) {
-					document.close();
-				}
-			}
-		}
-
-		/**
-			* @param text The text to be processed
-			*/
-		@Override /* this is questionable, not sure if needed... */
-		protected void processTextPosition(TextPosition text)  {
-			System.out.println("String[" + text.getXDirAdj() + ","
-					+ text.getYDirAdj() + " fs=" + text.getFontSize() + " xscale="
-					+ text.getXScale() + " height=" + text.getHeightDir() + " space="
-					+ text.getWidthOfSpace() + " width="
-					+ text.getWidthDirAdj() + "]" + text.getCharacter());
-			System.out.append(text.getCharacter()+" <--------------------------------");
-			// System.out.println("String[" + text.getXDirAdj() + "," + text.getYDirAdj() + " fs=" + text.getFontSize() + " xscale=" + text.getXScale() + " height=" + text.getHeightDir() + " space=" + text.getWidthOfSpace() + " width=" + text.getWidthDirAdj() + "]" + text.getCharacter());
-			System.out.println(text.getFont().getBaseFont()); System.out.println(" Italic="+text.getFont().getFontDescriptor().isItalic());
-			System.out.println(" Bold="+text.getFont().getFontDescriptor().getFontWeight());
-			System.out.println(" ItalicAngle="+text.getFont().getFontDescriptor().getItalicAngle());
-			//try{
-			System.out.println(" xxxx="+text.getFont().getFontDescriptor().isFixedPitch());
-			//} catch (IOException ioex){}
-
-		}
-
-	}
+	private val referenceChar = '*'
+	
+	
+	// OTHER    ---------------------------
+	
+	/**
+	 * Parses and stores a Bible book
+	 * @param translationId Id of the translation associated with the specified file
+	 * @param book The linked / translated Bible book
+	 * @param path Path to the pdf file that contains book data
+	 * @param exc Implicit execution context
+	 * @param cPool Implicit connection pool (a database connection is kept open during text processing)
+	 * @return Id of the inserted book translation.
+	 *         Failure if the parsing process failed.
 	 */
-	def apply(path: Path) = {
+	def apply(translationId: Int, book: Book, path: Path)(implicit exc: ExecutionContext, cPool: ConnectionPool) = {
 		PDDocument.load(path.toFile).tryConsume { doc =>
 			// TODO: Probably has to first determine the default font size by reading one page or something
-			
-			val extractor = new CustomTextStripper(10.959f, 24.787f)
-			/*
-			doc.getDocumentCatalog.getPages.iterator().asScala.slice(5, 10).foreach { page =>
-				println("\nProcessing page")
-				extractor.processPage(page)
-			}*/
-			extractor.setSortByPosition(true)
-			extractor.setStartPage(1)
-			extractor.setEndPage(1)
-			println(extractor.getText(doc))
+			cPool { implicit c =>
+				// Creates the extractor
+				val extractor = new CustomTextStripper(10.959f, 24.787f)
+				extractor.setSortByPosition(true)
+				
+				// Processes the book text
+				extractor.getText(doc)
+				
+				// Inserts the book and finalizes the process
+				val bookId = BookTranslationModel.insert(BookTranslationData(book, translationId)).id
+				extractor.finishBook(bookId)
+				
+				bookId
+				/*
+				doc.getDocumentCatalog.getPages.iterator().asScala.slice(5, 10).foreach { page =>
+					println("\nProcessing page")
+					extractor.processPage(page)
+					
+					extractor.setStartPage(1)
+					extractor.setEndPage(1)
+				}*/
+			}
 		}
 	}
 	
@@ -121,8 +78,9 @@ object BiblePdfParser
 	
 	private object Expressions
 	{
-		val period = Regex.escape('.')
+		private val period = Regex.escape('.')
 		
+		val textReference = Regex.escape(referenceChar)
 		// A reference may start with a chapter marker. e.g. 1. or a verse marker, e.g. v.7
 		val referenceStart = {
 			val verseMarker = (Regex("v") + period + Regex.digit.oneOrMoreTimes).withinParenthesis
@@ -135,7 +93,9 @@ object BiblePdfParser
 	
 	// private case class Line()
 	
-	private class CustomTextStripper(defaultFontSize: Float, headerFontSize: Float) extends PDFTextStripper
+	private class CustomTextStripper(defaultFontSize: Float, headerFontSize: Float)
+	                                (implicit connection: Connection)
+		extends PDFTextStripper
 	{
 		// ATTRIBUTES   ---------------------
 		
@@ -147,8 +107,10 @@ object BiblePdfParser
 		private val builder = new ChapterBuilder(1)
 		private val referenceTextBuilder = new VectorBuilder[String]()
 		// Collects foot note data (reference + text)
-		// Intended to be processed once the book completes
 		private val footnotesBuilder = ZipBuilder.zip[FootnoteData, String]()
+		
+		// Collects all inserted statement ids
+		private val statementIdsBuilder = new VectorBuilder[Int]()
 		
 		
 		// IMPLEMENTED  -----------------------
@@ -214,17 +176,24 @@ object BiblePdfParser
 				lastLineY = y
 			}
 			
-			
-			println(s"$text: ${pos.getX}, ${pos.getY} ${pos.getFontSize}")
-			
-			// TODO: By removing this line, one may perhaps improve memory use somewhat
-			super.writeString(text, textPositions)
+			// println(s"$text: ${pos.getX}, ${pos.getY} ${pos.getFontSize}")
+			// super.writeString(text, textPositions)
 		}
 		
 		
 		// OTHER    ----------------------
 		
-		// TODO: Add a function for finalizing the last chapter before closing the document
+		// Finalizes the book.
+		// Intended to be called once all text data has been read / processed
+		def finishBook(bookId: Int) = {
+			// Processes the final chapter
+			processReferences()
+			storeChapter(builder.finishChapter())
+			
+			// Inserts the collected statements to the book
+			BookStatementLinkModel.insert(statementIdsBuilder.result().zipWithIndex
+				.map { case (statementId, orderIndex) => BookStatementLinkData(bookId, statementId, orderIndex) })
+		}
 		
 		// Processes an individual word / text element
 		// Checks for verse markers, chapter markers, etc.
@@ -249,16 +218,70 @@ object BiblePdfParser
 				number.foreach { n => storeChapter(builder.finishChapter(n)) }
 		}
 		
-		// TODO: Implement and call this from new page start (& finalization)
 		private def processReferences() = {
 			val referencesText = referenceTextBuilder.result().mkString(" ")
 			referenceTextBuilder.clear()
 			val references = Expressions.referenceStart.split(referencesText).map { _.trim }.filter { _.nonEmpty }
+			footnotesBuilder.right ++= references
 		}
 		
 		private def storeChapter(chapter: ChapterText) = {
-			// TODO: Implement
-			// TODO: Process the * marks
+			// Stores the collected statements. Extracts * marks and notes the locations where they appeared.
+			val rawStatementData = chapter.verses.flatMap { _.statements }
+			// The first values are statement indices,
+			// The second values are word indices within those statements
+			val referenceIndices = rawStatementData.zipWithIndex.flatMap { case (statement, statementIndex) =>
+				statement.words.zipWithIndex.flatMap { case (word, wordIndex) =>
+					if (word.text.contains(referenceChar)) {
+						val referredWordIndex = if (word.text.length == 1) None else Some(wordIndex)
+						Some(statementIndex -> referredWordIndex)
+					}
+					else
+						None
+				}
+			}
+			val cleanedStatementData = rawStatementData
+				.map { _.mapWordText { t => Expressions.textReference.filterNot(t) } }
+			val insertedStatementIds = DbStatements.store(cleanedStatementData).map { _.either.id }
+			
+			// Attaches the statements to the book translation
+			// (the actual attachment is performed once the book is being finalized)
+			statementIdsBuilder ++= insertedStatementIds
+			
+			// Stores the verse markers
+			VerseMarkerModel.insert(chapter.verseMarkerIndices.map { case Pair(verseNumber, statementIndex) =>
+				VerseMarkerData(chapter.index, verseNumber, insertedStatementIds(statementIndex))
+			})
+			
+			// Queues and processes the reference marker data
+			footnotesBuilder.left ++= referenceIndices.map { case (statementIndex, wordIndex) =>
+				FootnoteData(insertedStatementIds(statementIndex), wordIndex)
+			}
+			storeCollectedFootnotes()
+		}
+		
+		private def storeCollectedFootnotes() = {
+			// Stores the footnotes
+			// First value is footnote id. Second value is text to insert.
+			val footnoteTextData = FootnoteModel
+				.insertFrom(footnotesBuilder.popResult()) { _._1 } { case (footnote, (_, text)) => footnote.id -> text }
+			
+			// Stores the footnote text
+			// OrderedFootnoteIds contains both the footnote id and the statement's order index
+			val (statementData, orderedFootnoteIds) = footnoteTextData
+				.flatMap { case (footnoteId, text) =>
+					StatementText.allFrom(text).zipWithIndex.map { case (statementText, orderIndex) =>
+						statementText -> (footnoteId -> orderIndex)
+					}
+				}
+				.split
+			val insertedStatementIds = DbStatements.store(statementData).map { _.either.id }
+			
+			// Attaches the text to the inserted footnotes
+			FootnoteStatementLinkModel.insert(insertedStatementIds.indices.map { i =>
+				val (footnoteId, orderIndex) = orderedFootnoteIds(i)
+				FootnoteStatementLinkData(footnoteId, insertedStatementIds(i), orderIndex)
+			})
 		}
 	}
 }
