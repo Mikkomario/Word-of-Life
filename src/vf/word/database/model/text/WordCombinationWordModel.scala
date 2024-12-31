@@ -8,6 +8,7 @@ import vf.word.database.WordTables
 import vf.word.model.partial.text.WordCombinationWordData
 import vf.word.model.stored.text.WordCombinationWord
 
+@deprecated("Deprecated for removal", "v0.2")
 object WordCombinationWordModel
 	extends DataInserter[WordCombinationWordModel, WordCombinationWord, WordCombinationWordData]
 {
@@ -26,6 +27,7 @@ object WordCombinationWordModel
  * @author Mikko Hilpinen
  * @since 30.4.2021, v0.2
  */
+@deprecated("Deprecated for removal", "v0.2")
 case class WordCombinationWordModel(id: Option[Int] = None, wordId: Option[Int] = None,
                                     combinationId: Option[Int] = None, orderIndex: Option[Int] = None)
 	extends Storable

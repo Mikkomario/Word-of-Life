@@ -7,6 +7,7 @@ import utopia.vault.sql.Insert
 import vf.word.database.WordTables
 import vf.word.model.stored.text.Sentence
 
+@deprecated("Deprecated for removal. Replaced with StatementDbModel in Logos", "v0.2")
 object SentenceModel
 {
 	// COMPUTED -------------------------------
@@ -37,6 +38,7 @@ object SentenceModel
  * @author Mikko Hilpinen
  * @since 24.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with StatementDbModel in Logos", "v0.2")
 case class SentenceModel(id: Option[Int] = None, contextId: Option[Int] = None, orderIndex: Option[Int] = None)
 	extends Storable
 {

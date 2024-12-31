@@ -2,19 +2,20 @@ package vf.word.controller.parse
 
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
+import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.collection.immutable.Pair
 import utopia.flow.collection.mutable.builder.ZipBuilder
-import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.generic.casting.ValueConversions._
 import utopia.flow.parse.AutoClose._
 import utopia.flow.parse.string.Regex
-import utopia.logos.database.access.many.word.statement.DbStatements
-import utopia.logos.model.cached.StatementText
+import utopia.flow.util.EitherExtensions._
+import utopia.logos.database.access.many.text.statement.DbStatements
+import utopia.logos.model.cached.Statement
 import utopia.vault.database.{Connection, ConnectionPool}
-import vf.word.database.storable.bible.{BookStatementLinkModel, BookTranslationModel, FootnoteModel, FootnoteStatementLinkModel, VerseMarkerModel}
+import vf.word.database.storable.bible._
 import vf.word.model.cached.{ChapterText, RomanNumeral}
 import vf.word.model.enumeration.Book
-import vf.word.model.partial.bible.{BookStatementLinkData, BookTranslationData, FootnoteData, FootnoteStatementLinkData, VerseMarkerData}
+import vf.word.model.partial.bible._
 
 import java.nio.file.Path
 import java.util
@@ -83,8 +84,8 @@ object BiblePdfParser
 		val textReference = Regex.escape(referenceChar)
 		// A reference may start with a chapter marker. e.g. 1. or a verse marker, e.g. v.7
 		val referenceStart = {
-			val verseMarker = (Regex("v") + period + Regex.digit.oneOrMoreTimes).withinParenthesis
-			(Regex.digit.oneOrMoreTimes + period + verseMarker.noneOrOnce).withinParenthesis || verseMarker
+			val verseMarker = (Regex("v") + period + Regex.digit.oneOrMoreTimes).withinParentheses
+			(Regex.digit.oneOrMoreTimes + period + verseMarker.noneOrOnce).withinParentheses || verseMarker
 		}
 		
 		// TODO: Implement prioritized verse-splitting
@@ -191,8 +192,8 @@ object BiblePdfParser
 			storeChapter(builder.finishChapter())
 			
 			// Inserts the collected statements to the book
-			BookStatementLinkModel.insert(statementIdsBuilder.result().zipWithIndex
-				.map { case (statementId, orderIndex) => BookStatementLinkData(bookId, statementId, orderIndex) })
+			BookStatementPlacementDbModel.insert(statementIdsBuilder.result().zipWithIndex
+				.map { case (statementId, orderIndex) => BookStatementPlacementData(bookId, statementId, orderIndex) })
 		}
 		
 		// Processes an individual word / text element
@@ -270,7 +271,7 @@ object BiblePdfParser
 			// OrderedFootnoteIds contains both the footnote id and the statement's order index
 			val (statementData, orderedFootnoteIds) = footnoteTextData
 				.flatMap { case (footnoteId, text) =>
-					StatementText.allFrom(text).zipWithIndex.map { case (statementText, orderIndex) =>
+					Statement.allFrom(text).zipWithIndex.map { case (statementText, orderIndex) =>
 						statementText -> (footnoteId -> orderIndex)
 					}
 				}
@@ -278,9 +279,9 @@ object BiblePdfParser
 			val insertedStatementIds = DbStatements.store(statementData).map { _.either.id }
 			
 			// Attaches the text to the inserted footnotes
-			FootnoteStatementLinkModel.insert(insertedStatementIds.indices.map { i =>
+			FootnoteStatementPlacementDbModel.insert(insertedStatementIds.indices.map { i =>
 				val (footnoteId, orderIndex) = orderedFootnoteIds(i)
-				FootnoteStatementLinkData(footnoteId, insertedStatementIds(i), orderIndex)
+				FootnoteStatementPlacementData(footnoteId, insertedStatementIds(i), orderIndex)
 			})
 		}
 	}

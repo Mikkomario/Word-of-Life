@@ -26,10 +26,62 @@
     }
   ],
   "classes": {
+    "text": [
+      {
+        "name": "TextPlacement",
+        "generic": true,
+        "from": "utopia.logos",
+        "access": "placement",
+        "doc": "Places some type of text to some location within another text",
+        "props": [
+          {
+            "name": "parentId",
+            "type": "Int",
+            "doc": "Id of the text where the placed text appears",
+            "with": "withinText"
+          },
+          {
+            "name": "placedId",
+            "type": "Int",
+            "doc": "Id of the text that is placed within the parent text",
+            "with": "placing",
+            "in": "placingTexts"
+          },
+          {
+            "name": "orderIndex",
+            "name_plural": "orderIndices",
+            "type": "Int(tiny)",
+            "length_rule": "Expand",
+            "doc": "0-based index that indicates the specific location of the placed text",
+            "default": 0,
+            "with": "at",
+            "in": "atIndices"
+          }
+        ]
+      },
+      {
+        "name": "StatementPlacement",
+        "generic": true,
+        "from": "utopia.logos",
+        "parent": "TextPlacement",
+        "access": "statement.placement",
+        "doc": "Common trait for models which are used for placing statements within various texts",
+        "props": [
+          {
+            "parent": "placedId",
+            "name": "statementId",
+            "ref": "statement",
+            "with": "placingStatement",
+            "in": "placingStatements",
+            "doc": "Id of the statement which appears within the linked text"
+          }
+        ]
+      }
+    ],
     "bible": [
       {
         "name": "Translation",
-        "doc": "Represents a Bible translation",
+        "doc": "Represents a translation covering one or more Bible books",
         "props": [
           {
             "name": "name",
@@ -53,12 +105,14 @@
       },
       {
         "name": "BookTranslation",
-        "doc": "Represents a translated book of the Bible",
+        "access": "translation.book",
+        "doc": "Represents a translated specific book of the Bible",
         "combo": {
           "name": "ContextualBook",
           "child": "Translation",
           "is_always_linked": true,
-          "doc": "Includes information about this book's translation"
+          "doc": "Includes information about this book's translation",
+          "parent_alias": "book"
         },
         "props": [
           {
@@ -71,46 +125,38 @@
           },
           {
             "ref": "translation",
-            "doc": "Id of the translation this book is part of"
+            "doc": "Id of the translation this book is part of",
+            "with": "partOfTranslation"
           }
         ]
       },
       {
-        "name": "BookStatementLink",
-        "doc": "Lists the statements made within a book",
+        "name": "BookStatementPlacement",
+        "parent": "StatementPlacement",
+        "access": "translation.book.statement",
+        "doc": "Links a statement to a book in which it is made",
         "combo": {
-          "name": "VerseBeginningStatementLink",
+          "name": "VerseBeginningStatementPlacement",
           "child": "VerseMarker",
           "is_always_linked": true,
-          "doc": "Represents a statement link that begins a verse. Includes verse marker information."
+          "doc": "Represents a statement link that begins a verse. Includes verse marker information.",
+          "parent_alias": "placement"
         },
         "combo_index": ["bookId", "orderIndex"],
         "props": [
           {
+            "parent": "parentId",
             "ref": "book_translation",
             "name": "bookId",
             "with": "inBook",
             "in": "inBooks",
             "doc": "Id of the book where the statement appears"
-          },
-          {
-            "ref": "statement",
-            "with": "toStatement",
-            "in": "toStatements",
-            "doc": "Id of the statement made"
-          },
-          {
-            "name": "orderIndex",
-            "name_plural": "orderIndices",
-            "type": "Int",
-            "with": "at",
-            "in": "atIndices",
-            "doc": "Index that indicates, where in the book the linked statement appears"
           }
         ]
       },
       {
         "name": "VerseMarker",
+        "access": "verse",
         "doc": "Locates a verse marker within a text",
         "combo_index": ["chapterIndex", "verseIndex"],
         "props": [
@@ -129,7 +175,7 @@
             "doc": "A 1-based index that indicates which verse this is"
           },
           {
-            "ref": "book_statement_link",
+            "ref": "book_statement_placement",
             "name": "firstStatementId",
             "doc": "Id of the book statement that starts this verse"
           }
@@ -137,19 +183,19 @@
       },
       {
         "name": "Footnote",
-        "doc": "Represents a foot note made within the original text, concerning a specific word or a statement within the test",
+        "doc": "Represents a foot note made within the original text, concerning a specific word or a statement within the text",
         "combo": {
-          "name": "FootnoteWithLinks",
-          "name_plural": "FootnotesWithLinks",
+          "name": "FootnoteWithStatementPlacements",
+          "name_plural": "FootnotesWithStatementPlacements",
           "doc": "A footnote which includes links to the statements made",
-          "children": "FootnoteStatementLink",
+          "children": "FootnoteStatementPlacement",
           "is_always_linked": true,
-          "child_alias": "link",
-          "children_alias": "links"
+          "child_alias": "placement",
+          "children_alias": "placements"
         },
         "props": [
           {
-            "ref": "book_statement_link",
+            "ref": "book_statement_placement",
             "name": "commentedStatementId",
             "with": "forStatement",
             "in": "forStatements",
@@ -157,34 +203,25 @@
           },
           {
             "name": "targetedWordIndex",
+            "name_plural": "targetedWordIndices",
             "type": "Option[Int]",
-            "doc": "A 0-based index that specifies the word targeted within this statement. None if no specific word was targeted."
+            "doc": "A 0-based index that specifies the word targeted within this statement. \nNone if no specific word was targeted."
           }
         ]
       },
       {
-        "name": "FootnoteStatementLink",
+        "name": "FootnoteStatementPlacement",
+        "parent": "StatementPlacement",
+        "access": "footnote.statement",
         "doc": "Links a footnote to a statement made within it",
         "combo_index": ["footnoteId", "orderIndex"],
         "props": [
           {
+            "parent": "parentId",
             "ref": "footnote",
             "with": "inFootnote",
             "in": "inFootnotes",
             "doc": "Id of the footnote where the statement is made"
-          },
-          {
-            "ref": "statement",
-            "with": "toStatement",
-            "in": "toStatements",
-            "doc": "Id of the statement made within the footnote"
-          },
-          {
-            "name": "orderIndex",
-            "name_plural": "orderIndices",
-            "with": "at",
-            "in": "atIndices",
-            "doc": "A 0-based index that determines where the statement appears within the footnote"
           }
         ]
       }

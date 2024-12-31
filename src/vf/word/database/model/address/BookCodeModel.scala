@@ -7,6 +7,7 @@ import vf.word.database.WordTables
 import vf.word.model.partial.address.BookCodeData
 import vf.word.model.stored.address.BookCode
 
+@deprecated("Deprecated for removal. Replaced with the Book enumeration.", "v0.2")
 object BookCodeModel
 {
 	// COMPUTED ------------------------
@@ -39,6 +40,7 @@ object BookCodeModel
  * @author Mikko Hilpinen
  * @since 23.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with the Book enumeration.", "v0.2")
 case class BookCodeModel(id: Option[Int] = None, code: Option[String] = None, bookId: Option[Int] = None)
 	extends Storable
 {

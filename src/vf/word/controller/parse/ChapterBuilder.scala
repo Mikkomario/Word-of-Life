@@ -2,11 +2,11 @@ package vf.word.controller.parse
 
 import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.parse.string.Regex
-import utopia.flow.util.StringExtensions._
 import utopia.flow.view.mutable.eventful.ResettableFlag
-import utopia.logos.model.cached.StatementText
+import utopia.logos.model.cached.Statement
 import vf.word.controller.parse.ChapterBuilder.wordSplitAtEndOfLineRegex
 import vf.word.model.cached.{ChapterText, VerseText}
+import vf.word.util.Common._
 
 import scala.collection.immutable.VectorBuilder
 import scala.collection.mutable
@@ -33,7 +33,7 @@ class ChapterBuilder(initialChapterIndex: Int) extends mutable.Builder[String, C
 	// Collects completed verses
 	private val versesBuilder = new VectorBuilder[VerseText]()
 	// Collects completed statements within the currently open verse
-	private val verseBuilder = new VectorBuilder[StatementText]()
+	private val verseBuilder = new VectorBuilder[Statement]()
 	// Corrects words within the currently open line
 	private val lineBuilder = new VectorBuilder[String]()
 	
@@ -65,7 +65,7 @@ class ChapterBuilder(initialChapterIndex: Int) extends mutable.Builder[String, C
 	override def result() = {
 		// Finishes the current line and verse
 		newLine()
-		openStatement.notEmpty.foreach { t => verseBuilder ++= StatementText.allFrom(t) }
+		openStatement.notEmpty.foreach { t => verseBuilder ++= Statement.allFrom(t) }
 		completeVerse(newVerseIndex = 1)
 		
 		ChapterText(chapterIndex, versesBuilder.result())
@@ -92,7 +92,7 @@ class ChapterBuilder(initialChapterIndex: Int) extends mutable.Builder[String, C
 	def newLine(): Unit = {
 		val line = openStatement + lineBuilder.result().mkString(" ")
 		lineBuilder.clear()
-		val lineStatements = StatementText.allFrom(line)
+		val lineStatements = Statement.allFrom(line)
 		// Will not consider the last started statement completed unless it ends with a delimiter
 		// (since the statement may otherwise continue on the next line)
 		val (completedStatements, nextOpenStatement) = {

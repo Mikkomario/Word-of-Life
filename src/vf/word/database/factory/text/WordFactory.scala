@@ -14,6 +14,7 @@ import vf.word.model.stored.text.Word
  * @author Mikko Hilpinen
  * @since 8.5.2021, v0.2
  */
+@deprecated("Replaced with WordDbFactory in Logos", "v0.2")
 object WordFactory extends FromValidatedRowModelFactory[Word]
 {
 	override def table = WordTables.word

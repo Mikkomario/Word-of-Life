@@ -11,7 +11,7 @@ import utopia.flow.view.mutable.eventful.EventfulPointer
 import utopia.vault.database.Connection
 import vf.word.database.access.many.text.DbWritings
 import vf.word.database.model.address.{BookCodeModel, ChapterModel, VerseModel}
-import vf.word.database.model.text.{SentenceModel, SentencePartModel, SentenceSegmentModel, WordAssignmentModel, WordModel}
+import vf.word.database.model.text._
 import vf.word.model.cached.Location
 import vf.word.model.enumeration.Capitalization
 import vf.word.model.enumeration.Capitalization.AlwaysCapitalize
@@ -19,6 +19,7 @@ import vf.word.model.partial.address.{BookCodeData, VerseData}
 import vf.word.model.partial.text.{SentencePartData, SentenceSegmentData, WordAssignmentData}
 import vf.word.model.stored.address.Chapter
 import vf.word.model.stored.text.Word
+import vf.word.util.Common._
 
 import java.nio.file.Path
 import scala.collection.immutable.VectorBuilder
@@ -219,7 +220,7 @@ object KjvDatParser
 	private object VerseLine
 	{
 		// Each line ends with ~
-		def fromLine(line: Vector[String]) = VerseLine(Address(line.head, line(1).toInt, line(2).toInt),
+		def fromLine(line: Seq[String]) = VerseLine(Address(line.head, line(1).toInt, line(2).toInt),
 			line(3).untilLast("~").stripControlCharacters.trim)
 	}
 	
@@ -491,7 +492,7 @@ object KjvDatParser
 		
 		// OTHER    ---------------------------------
 		
-		def record(segments: Vector[(Int, String)])(implicit connection: Connection): Unit = {
+		def record(segments: Seq[(Int, String)])(implicit connection: Connection): Unit = {
 			// Starts by splitting the segments to individual words
 			val segmentWords = segments.map { case (segmentId, text) =>
 				val targetText = if (allSeparators.contains(text.last)) text.dropRight(1) else text

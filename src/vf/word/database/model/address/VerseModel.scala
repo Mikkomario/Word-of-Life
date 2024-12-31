@@ -8,6 +8,7 @@ import vf.word.database.WordTables
 import vf.word.model.partial.address.VerseData
 import vf.word.model.stored.address.Verse
 
+@deprecated("Deprecated for removal. Replaced with VerseMarkerDbModel", "v0.2")
 object VerseModel
 {
 	// COMPUTED --------------------------------
@@ -45,6 +46,7 @@ object VerseModel
  * @author Mikko Hilpinen
  * @since 24.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with VerseMarkerDbModel", "v0.2")
 case class VerseModel(id: Option[Int] = None, chapterId: Option[Int] = None, number: Option[Int] = None,
                       startSegmentId: Option[Int] = None) extends Storable
 {

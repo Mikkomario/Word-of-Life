@@ -9,6 +9,7 @@ import vf.word.model.enumeration.WordSide
 import vf.word.model.partial.text.WordCombinationData
 import vf.word.model.stored.text.WordCombination
 
+@deprecated("Deprecated for removal", "v0.2")
 object WordCombinationModel
 {
 	// COMPUTED -------------------------------
@@ -46,6 +47,7 @@ object WordCombinationModel
  * @author Mikko Hilpinen
  * @since 28.4.2021, v0.2
  */
+@deprecated("Deprecated for removal", "v0.2")
 case class WordCombinationModel(id: Option[Int] = None, wordCount: Option[Int] = None,
                                 baseCombinationId: Option[Int] = None, baseCombinationSide: Option[WordSide] = None)
 	extends Storable

@@ -1,7 +1,7 @@
 package vf.word.database.access.id.many
 
+import utopia.logos.database.LogosTables
 import utopia.vault.nosql.access.many.column.ManyIntIdAccess
-import vf.word.database.WordTables
 
 /**
  * Used for accessing multiple word ids at a time
@@ -12,7 +12,7 @@ object DbWordIds extends ManyIntIdAccess
 {
 	// IMPLEMENTED  -----------------------------
 	
-	override def table = WordTables.word
+	override def table = LogosTables.word
 	override def target = table
 	
 	override def accessCondition = None

@@ -2,7 +2,8 @@ package vf.word.database.factory.bible
 
 import utopia.flow.generic.model.immutable.Model
 import utopia.vault.nosql.factory.row.model.FromValidatedRowModelFactory
-import vf.word.database.WordOfLifeTables
+import utopia.vault.sql.OrderBy
+import vf.word.database.storable.bible.VerseMarkerDbModel
 import vf.word.model.partial.bible.VerseMarkerData
 import vf.word.model.stored.bible.VerseMarker
 
@@ -13,14 +14,23 @@ import vf.word.model.stored.bible.VerseMarker
   */
 object VerseMarkerDbFactory extends FromValidatedRowModelFactory[VerseMarker]
 {
+	// ATTRIBUTES	--------------------
+	
+	/**
+	  * Model that specifies how the data is read
+	  */
+	val model = VerseMarkerDbModel
+	
+	override lazy val defaultOrdering: Option[OrderBy] = None
+	
+	
 	// IMPLEMENTED	--------------------
 	
-	override def defaultOrdering = None
-	
-	override def table = WordOfLifeTables.verseMarker
+	override def table = model.table
 	
 	override protected def fromValidatedModel(valid: Model) = 
-		VerseMarker(valid("id").getInt, VerseMarkerData(valid("chapterIndex").getInt, 
-			valid("verseIndex").getInt, valid("firstStatementId").getInt))
+		VerseMarker(valid(this.model.id.name).getInt, 
+			VerseMarkerData(valid(this.model.chapterIndex.name).getInt, 
+			valid(this.model.verseIndex.name).getInt, valid(this.model.firstStatementId.name).getInt))
 }
 

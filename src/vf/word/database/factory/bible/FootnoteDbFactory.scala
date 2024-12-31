@@ -2,7 +2,8 @@ package vf.word.database.factory.bible
 
 import utopia.flow.generic.model.immutable.Model
 import utopia.vault.nosql.factory.row.model.FromValidatedRowModelFactory
-import vf.word.database.WordOfLifeTables
+import utopia.vault.sql.OrderBy
+import vf.word.database.storable.bible.FootnoteDbModel
 import vf.word.model.partial.bible.FootnoteData
 import vf.word.model.stored.bible.Footnote
 
@@ -13,14 +14,23 @@ import vf.word.model.stored.bible.Footnote
   */
 object FootnoteDbFactory extends FromValidatedRowModelFactory[Footnote]
 {
+	// ATTRIBUTES	--------------------
+	
+	/**
+	  * Model that specifies how the data is read
+	  */
+	val model = FootnoteDbModel
+	
+	override lazy val defaultOrdering: Option[OrderBy] = None
+	
+	
 	// IMPLEMENTED	--------------------
 	
-	override def defaultOrdering = None
-	
-	override def table = WordOfLifeTables.footnote
+	override def table = model.table
 	
 	override protected def fromValidatedModel(valid: Model) = 
-		Footnote(valid("id").getInt, FootnoteData(valid("commentedStatementId").getInt, 
-			valid("targetedWordIndex").int))
+		Footnote(valid(this.model.id.name).getInt, 
+			FootnoteData(valid(this.model.commentedStatementId.name).getInt, 
+			valid(this.model.targetedWordIndex.name).int))
 }
 

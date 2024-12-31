@@ -8,6 +8,7 @@ import vf.word.database.WordTables
 import vf.word.model.partial.text.WordCombinationAssignmentData
 import vf.word.model.stored.text.WordCombinationAssignment
 
+@deprecated("Deprecated for removal", "v0.2")
 object WordCombinationAssignmentModel
 {
 	// COMPUTED ---------------------------------
@@ -45,6 +46,7 @@ object WordCombinationAssignmentModel
  * @author Mikko Hilpinen
  * @since 28.4.2021, v0.2
  */
+@deprecated("Deprecated for removal", "v0.2")
 case class WordCombinationAssignmentModel(id: Option[Int] = None, wordCombinationId: Option[Int] = None,
                                           headAssignmentId: Option[Int] = None, primary: Option[Boolean] = None)
 	extends Storable

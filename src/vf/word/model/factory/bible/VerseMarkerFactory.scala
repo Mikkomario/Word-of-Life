@@ -1,7 +1,9 @@
 package vf.word.model.factory.bible
 
 /**
-  * Common trait for verse marker-related factories which allow construction with individual properties
+  * Common trait for verse marker-related factories which allow construction with individual 
+  * properties
+  * @tparam A Type of constructed instances
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */

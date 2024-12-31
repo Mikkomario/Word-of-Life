@@ -5,7 +5,7 @@ import utopia.vault.nosql.template.Indexed
 import utopia.vault.nosql.view.UnconditionalView
 import utopia.vault.sql.Condition
 import vf.word.database.factory.bible.TranslationDbFactory
-import vf.word.database.storable.bible.TranslationModel
+import vf.word.database.storable.bible.TranslationDbModel
 import vf.word.model.stored.bible.Translation
 
 /**
@@ -18,9 +18,9 @@ object DbTranslation extends SingleRowModelAccess[Translation] with Unconditiona
 	// COMPUTED	--------------------
 	
 	/**
-	  * Factory used for constructing database the interaction models
+	  * Model which contains the primary database properties interacted with in this access point
 	  */
-	protected def model = TranslationModel
+	private def model = TranslationDbModel
 	
 	
 	// IMPLEMENTED	--------------------
@@ -37,10 +37,18 @@ object DbTranslation extends SingleRowModelAccess[Translation] with Unconditiona
 	def apply(id: Int) = DbSingleTranslation(id)
 	
 	/**
-	  * @param condition Filter condition to apply in addition to this root view's condition. Should yield
-	  *  unique translations.
+	  * @param condition Filter condition to apply in addition to this root view's condition. Should 
+	  *                  yield
+	  *                  unique translations.
 	  * @return An access point to the translation that satisfies the specified condition
 	  */
 	protected def filterDistinct(condition: Condition) = UniqueTranslationAccess(mergeCondition(condition))
+	
+	/**
+	  * @param condition Filter condition to apply in addition to this root view's condition. Should 
+	  *                  yield unique translations.
+	  * @return An access point to the translation that satisfies the specified condition
+	  */
+	private def distinct(condition: Condition) = UniqueTranslationAccess(condition)
 }
 

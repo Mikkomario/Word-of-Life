@@ -1,22 +1,33 @@
 package vf.word.model.stored.bible
 
-import utopia.vault.model.template.{FromIdFactory, StoredModelConvertible}
+import utopia.flow.generic.model.template.ModelLike.AnyModel
+import utopia.vault.model.template.{FromIdFactory, StoredFromModelFactory, StoredModelConvertible}
 import vf.word.database.access.single.bible.translation.DbSingleTranslation
-import vf.word.model.factory.bible.TranslationFactory
+import vf.word.model.factory.bible.{TranslationFactory, TranslationFactoryWrapper}
 import vf.word.model.partial.bible.TranslationData
 
 import java.time.Instant
 
+object Translation extends StoredFromModelFactory[TranslationData, Translation]
+{
+	// IMPLEMENTED	--------------------
+	
+	override def dataFactory = TranslationData
+	
+	override protected def complete(model: AnyModel, data: TranslationData) = 
+		model("id").tryInt.map { apply(_, data) }
+}
+
 /**
   * Represents a translation that has already been stored in the database
-  * @param id id of this translation in the database
+  * @param id   id of this translation in the database
   * @param data Wrapped translation data
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */
 case class Translation(id: Int, data: TranslationData) 
-	extends StoredModelConvertible[TranslationData] with TranslationFactory[Translation] 
-		with FromIdFactory[Int, Translation]
+	extends StoredModelConvertible[TranslationData] with FromIdFactory[Int, Translation]
+		with TranslationFactoryWrapper[TranslationData, Translation]
 {
 	// COMPUTED	--------------------
 	
@@ -28,12 +39,10 @@ case class Translation(id: Int, data: TranslationData)
 	
 	// IMPLEMENTED	--------------------
 	
-	override def withAbbreviation(abbreviation: String) = copy(data = data.withAbbreviation(abbreviation))
+	override protected def wrappedFactory = data
 	
-	override def withCreated(created: Instant) = copy(data = data.withCreated(created))
+	override def withId(id: Int): Translation = copy(id = id)
 	
-	override def withId(id: Int) = copy(id = id)
-	
-	override def withName(name: String) = copy(data = data.withName(name))
+	override protected def wrap(data: TranslationData) = copy(data = data)
 }
 

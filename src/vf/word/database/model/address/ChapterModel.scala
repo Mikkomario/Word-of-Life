@@ -7,6 +7,7 @@ import utopia.vault.sql.Insert
 import vf.word.database.WordTables
 import vf.word.model.stored.address.Chapter
 
+@deprecated("Deprecated for removal. Replaced with VerseMarkerDbModel", "v0.2")
 object ChapterModel
 {
 	// COMPUTED ---------------------------
@@ -38,6 +39,7 @@ object ChapterModel
  * @author Mikko Hilpinen
  * @since 24.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with VerseMarkerDbModel", "v0.2")
 case class ChapterModel(id: Option[Int] = None, bookId: Option[Int] = None, number: Option[Int] = None)
 	extends Storable
 {

@@ -5,7 +5,7 @@ import utopia.vault.nosql.template.Indexed
 import utopia.vault.nosql.view.UnconditionalView
 import utopia.vault.sql.Condition
 import vf.word.database.factory.bible.FootnoteDbFactory
-import vf.word.database.storable.bible.FootnoteModel
+import vf.word.database.storable.bible.FootnoteDbModel
 import vf.word.model.stored.bible.Footnote
 
 /**
@@ -18,9 +18,9 @@ object DbFootnote extends SingleRowModelAccess[Footnote] with UnconditionalView 
 	// COMPUTED	--------------------
 	
 	/**
-	  * Factory used for constructing database the interaction models
+	  * Model which contains the primary database properties interacted with in this access point
 	  */
-	protected def model = FootnoteModel
+	private def model = FootnoteDbModel
 	
 	
 	// IMPLEMENTED	--------------------
@@ -37,10 +37,18 @@ object DbFootnote extends SingleRowModelAccess[Footnote] with UnconditionalView 
 	def apply(id: Int) = DbSingleFootnote(id)
 	
 	/**
-	  * @param condition Filter condition to apply in addition to this root view's condition. Should yield
-	  *  unique footnotes.
+	  * @param condition Filter condition to apply in addition to this root view's condition. Should 
+	  *                  yield
+	  *                  unique footnotes.
 	  * @return An access point to the footnote that satisfies the specified condition
 	  */
 	protected def filterDistinct(condition: Condition) = UniqueFootnoteAccess(mergeCondition(condition))
+	
+	/**
+	  * @param condition Filter condition to apply in addition to this root view's condition. Should 
+	  *                  yield unique footnotes.
+	  * @return An access point to the footnote that satisfies the specified condition
+	  */
+	private def distinct(condition: Condition) = UniqueFootnoteAccess(condition)
 }
 

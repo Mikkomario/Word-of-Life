@@ -11,46 +11,58 @@ import vf.word.util.Common._
   */
 object WordOfLifeTables extends Tables(cPool)
 {
-	// COMPUTED	--------------------
+	// ATTRIBUTES	--------------------
 	
 	/**
-	  * Table that contains book statement links (Lists the statements made within a book)
+	  * Table that contains book statement placements (Links a statement to a book in which it is 
+	  * made)
 	  */
-	def bookStatementLink = apply("book_statement_link")
+	lazy val bookStatementPlacement = apply("book_statement_placement")
 	
 	/**
-	  * Table that contains book translations (Represents a translated book of the Bible)
+	  * Table that contains book translations (Represents a translated specific book of the Bible)
 	  */
-	def bookTranslation = apply("book_translation")
+	lazy val bookTranslation = apply("book_translation")
 	
 	/**
 	  * Table that contains footnotes (Represents a foot note made within the original text, 
-	  * concerning a specific word or a statement within the test)
+	  * concerning a specific word or a statement within the text)
 	  */
-	def footnote = apply("footnote")
+	lazy val footnote = apply("footnote")
 	
 	/**
-	  * Table that contains footnote statement links (Links a footnote to a statement made within it)
+	  * Table that contains footnote statement placements (Links a footnote to a statement made 
+	  * within it)
 	  */
-	def footnoteStatementLink = apply("footnote_statement_link")
+	lazy val footnoteStatementPlacement = apply("footnote_statement_placement")
 	
 	/**
-	  * Table that contains translations (Represents a Bible translation)
+	  * Table that contains translations (Represents a translation covering one or more Bible books)
 	  */
-	def translation = apply("translation")
+	lazy val translation = apply("translation")
 	
 	/**
 	  * Table that contains verse markers (Locates a verse marker within a text)
 	  */
-	def verseMarker = apply("verse_marker")
+	lazy val verseMarker = apply("verse_marker")
+	
+	/**
+	  * Table that contains book statement links (Links a statement to a book in which it is made)
+	  */
+	lazy val bookStatementLink = apply("book_statement_link")
+	
+	/**
+	  * Table that contains footnote statement links (Links a footnote to a statement made within it)
+	  */
+	lazy val footnoteStatementLink = apply("footnote_statement_link")
 	
 	
 	// OTHER	--------------------
 	
 	/**
-	 * @param tableName Name of the targeted table
-	 * @return Table with that name
-	 */
+	  * @param tableName Name of the targeted table
+	  * @return Table with that name
+	  */
 	def apply(tableName: String): Table = apply(dbName, tableName)
 }
 

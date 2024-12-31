@@ -8,6 +8,7 @@ import vf.word.database.WordTables
 import vf.word.model.enumeration.Capitalization
 import vf.word.model.stored.text.Word
 
+@deprecated("Deprecated for removal. Replaced with WordDbModel in Logos.", "v0.2")
 object WordModel
 {
 	// COMPUTED ------------------------------
@@ -55,6 +56,7 @@ object WordModel
  * @author Mikko Hilpinen
  * @since 24.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with WordDbModel in Logos.", "v0.2")
 case class WordModel(id: Option[Int] = None, value: Option[String] = None, capitalize: Option[Capitalization] = None)
 	extends Storable
 {

@@ -4,16 +4,26 @@ import utopia.flow.generic.casting.ValueConversions._
 import utopia.vault.database.Connection
 import utopia.vault.nosql.access.many.model.ManyRowModelAccess
 import utopia.vault.nosql.template.Indexed
-import utopia.vault.nosql.view.FilterableView
+import utopia.vault.nosql.view.{FilterableView, ViewFactory}
 import utopia.vault.sql.Condition
 import vf.word.database.factory.bible.TranslationDbFactory
-import vf.word.database.storable.bible.TranslationModel
+import vf.word.database.storable.bible.TranslationDbModel
 import vf.word.model.stored.bible.Translation
 
 import java.time.Instant
 
-object ManyTranslationsAccess
+object ManyTranslationsAccess extends ViewFactory[ManyTranslationsAccess]
 {
+	// IMPLEMENTED	--------------------
+	
+	/**
+	  * @param condition Condition to apply to all requests
+	  * @return An access point that applies the specified filter condition (only)
+	  */
+	override def apply(condition: Condition): ManyTranslationsAccess = 
+		_ManyTranslationsAccess(Some(condition))
+	
+	
 	// NESTED	--------------------
 	
 	private class ManyTranslationsSubView(condition: Condition) extends ManyTranslationsAccess
@@ -22,6 +32,9 @@ object ManyTranslationsAccess
 		
 		override def accessCondition = Some(condition)
 	}
+	
+	private case class _ManyTranslationsAccess(override val accessCondition: Option[Condition]) 
+		extends ManyTranslationsAccess
 }
 
 /**
@@ -51,12 +64,15 @@ trait ManyTranslationsAccess
 	def creationTimes(implicit connection: Connection) = 
 		pullColumn(model.created.column).map { v => v.getInstant }
 	
+	/**
+	  * Unique ids of the accessible translations
+	  */
 	def ids(implicit connection: Connection) = pullColumn(index).map { v => v.getInt }
 	
 	/**
-	  * Factory used for constructing database the interaction models
+	  * Model which contains the primary database properties interacted with in this access point
 	  */
-	protected def model = TranslationModel
+	protected def model = TranslationDbModel
 	
 	
 	// IMPLEMENTED	--------------------
@@ -64,6 +80,8 @@ trait ManyTranslationsAccess
 	override def factory = TranslationDbFactory
 	
 	override protected def self = this
+	
+	override def apply(condition: Condition): ManyTranslationsAccess = ManyTranslationsAccess(condition)
 	
 	override def filter(filterCondition: Condition): ManyTranslationsAccess = 
 		new ManyTranslationsAccess.ManyTranslationsSubView(mergeCondition(filterCondition))
@@ -103,9 +121,9 @@ trait ManyTranslationsAccess
 	/**
 	  * @param abbreviations Targeted abbreviations
 	  * @return Copy of this access point that only includes translations where abbreviation is within the
-	  *  specified value set
+	  * specified value set
 	  */
-	def withAbbreviations(abbreviations: Iterable[String]) =
+	def withAbbreviations(abbreviations: Iterable[String]) = 
 		filter(model.abbreviation.column.in(abbreviations))
 	
 	/**
@@ -116,7 +134,8 @@ trait ManyTranslationsAccess
 	
 	/**
 	  * @param names Targeted names
-	  * @return Copy of this access point that only includes translations where name is within the specified value set
+	  * @return Copy of this access point that only includes translations where name is within the specified 
+	  * value set
 	  */
 	def withNames(names: Iterable[String]) = filter(model.name.column.in(names))
 }

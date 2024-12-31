@@ -11,12 +11,19 @@ import vf.word.model.stored.bible.{BookTranslation, Translation}
   */
 object ContextualBookDbFactory extends CombiningFactory[ContextualBook, BookTranslation, Translation]
 {
+	// ATTRIBUTES	--------------------
+	
+	override val parentFactory = BookTranslationDbFactory
+	
+	override val childFactory = TranslationDbFactory
+	
+	
 	// IMPLEMENTED	--------------------
 	
-	override def childFactory = TranslationDbFactory
-	
-	override def parentFactory = BookTranslationDbFactory
-	
+	/**
+	  * @param bookTranslation book translation to wrap
+	  * @param translation     translation to attach to this book translation
+	  */
 	override def apply(bookTranslation: BookTranslation, translation: Translation) = 
 		ContextualBook(bookTranslation, translation)
 }

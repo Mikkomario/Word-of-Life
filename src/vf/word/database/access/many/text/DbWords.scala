@@ -13,6 +13,7 @@ import vf.word.model.stored.text.Word
  * @author Mikko Hilpinen
  * @since 8.5.2021, v0.2
  */
+@deprecated("Moved to Logos", "v0.2")
 object DbWords extends ManyRowModelAccess[Word] with Indexed
 {
 	// COMPUTED ---------------------------------

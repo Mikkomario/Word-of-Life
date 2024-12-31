@@ -9,6 +9,7 @@ import vf.word.model.cached.Location
 import vf.word.model.partial.text.WordAssignmentData
 import vf.word.model.stored.text.WordAssignment
 
+@deprecated("Deprecated for removal. Replaced with WordPlacementDbModel in Logos", "v0.2")
 object WordAssignmentModel
 {
 	// COMPUTED -------------------------
@@ -63,6 +64,7 @@ object WordAssignmentModel
  * @author Mikko Hilpinen
  * @since 24.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with WordPlacementDbModel in Logos", "v0.2")
 case class WordAssignmentModel(id: Option[Int] = None, wordId: Option[Int] = None, locationId: Option[Int] = None,
                                orderIndex: Option[Int] = None) extends Storable
 {

@@ -1,14 +1,18 @@
 package vf.word.database.access.many.bible.footnote
 
+import utopia.flow.collection.immutable.IntSet
 import utopia.flow.generic.casting.ValueConversions._
 import utopia.vault.database.Connection
 import utopia.vault.nosql.access.many.model.ManyModelAccess
 import utopia.vault.nosql.template.Indexed
 import utopia.vault.nosql.view.FilterableView
-import vf.word.database.storable.bible.FootnoteModel
+import vf.word.database.storable.bible.FootnoteDbModel
 
 /**
-  * A common trait for access points which target multiple footnotes or similar instances at a time
+  * A common trait for access points which target multiple footnotes or similar instances at a 
+  * time
+  * @tparam A Type of read (footnotes -like) instances
+  * @tparam Repr Type of this access point
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */
@@ -23,17 +27,26 @@ trait ManyFootnotesAccessLike[+A, +Repr] extends ManyModelAccess[A] with Indexed
 		pullColumn(model.commentedStatementId.column).map { v => v.getInt }
 	
 	/**
+	  * targeted word indices of the accessible footnotes
+	  */
+	def targetedWordIndices(implicit connection: Connection) = 
+		pullColumn(model.targetedWordIndex.column).flatMap { v => v.int }
+	
+	/**
+	  * Unique ids of the accessible footnotes
+	  */
+	def ids(implicit connection: Connection) = pullColumn(index).map { v => v.getInt }
+	
+	/**
 	  * targeted word indexs of the accessible footnotes
 	  */
 	def targetedWordIndexs(implicit connection: Connection) = 
 		pullColumn(model.targetedWordIndex.column).flatMap { v => v.int }
 	
-	def ids(implicit connection: Connection) = pullColumn(index).map { v => v.getInt }
-	
 	/**
-	  * Factory used for constructing database the interaction models
+	  * Model which contains the primary database properties interacted with in this access point
 	  */
-	protected def model = FootnoteModel
+	protected def model = FootnoteDbModel
 	
 	
 	// OTHER	--------------------
@@ -49,19 +62,18 @@ trait ManyFootnotesAccessLike[+A, +Repr] extends ManyModelAccess[A] with Indexed
 	/**
 	  * @param commentedStatementId commented statement id to target
 	  * @return Copy of this access point that only includes footnotes 
-		with the specified commented statement id
+	  * with the specified commented statement id
 	  */
 	def forStatement(commentedStatementId: Int) = 
 		filter(model.commentedStatementId.column <=> commentedStatementId)
 	
 	/**
 	  * @param commentedStatementIds Targeted commented statement ids
-	  * 
-		@return Copy of this access point that only includes footnotes where commented statement id is within the
-	  *  specified value set
+	  * @return Copy of this access point that only includes footnotes where commented statement id is within 
+	  * the specified value set
 	  */
-	def forStatements(commentedStatementIds: Iterable[Int]) =
-		filter(model.commentedStatementId.column.in(commentedStatementIds))
+	def forStatements(commentedStatementIds: IterableOnce[Int]) = 
+		filter(model.commentedStatementId.column.in(IntSet.from(commentedStatementIds)))
 	
 	/**
 	  * Updates the targeted word indexs of the targeted footnotes

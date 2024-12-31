@@ -1,14 +1,15 @@
 package vf.word.database.access.many.bible.translation
 
 import utopia.flow.generic.casting.ValueConversions._
-import utopia.vault.nosql.view.UnconditionalView
+import utopia.vault.nosql.view.{UnconditionalView, ViewManyByIntIds}
 
 /**
   * The root access point when targeting multiple translations at a time
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */
-object DbTranslations extends ManyTranslationsAccess with UnconditionalView
+object DbTranslations 
+	extends ManyTranslationsAccess with UnconditionalView with ViewManyByIntIds[ManyTranslationsAccess]
 {
 	// OTHER	--------------------
 	

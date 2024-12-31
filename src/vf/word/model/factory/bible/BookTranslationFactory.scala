@@ -3,7 +3,9 @@ package vf.word.model.factory.bible
 import vf.word.model.enumeration.Book
 
 /**
-  * Common trait for book translation-related factories which allow construction with individual properties
+  * Common trait for book translation-related factories which allow construction with individual 
+  * properties
+  * @tparam A Type of constructed instances
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */

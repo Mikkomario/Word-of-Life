@@ -9,6 +9,7 @@ import vf.word.database.model.text.WordAssignmentModel
  * @author Mikko Hilpinen
  * @since 30.4.2021, v0.2
  */
+@deprecated("Moved to Logos", "v0.2")
 object DbWord
 {
 	// COMPUTED ---------------------------

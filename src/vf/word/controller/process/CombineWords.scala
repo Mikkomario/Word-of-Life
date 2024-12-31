@@ -1,6 +1,6 @@
 package vf.word.controller.process
 
-import utopia.flow.collection.immutable.Tree
+import utopia.flow.collection.immutable.{Empty, Pair, Single, Tree}
 import utopia.flow.util.ActionBuffer
 import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.operator.equality.EqualsFunction
@@ -62,7 +62,7 @@ object CombineWords
 					rightwardCombinations.flatMap { _.allNavsIterator.flatMap { _.headAssignments } }, WordSide.Left)
 				// Combines and saves the combinations
 				rightwardCombinations.foreach { root =>
-					insertBuffer ++= combineCombinations(Vector(wordId), root, leftwardCombinations, duplicateChecker)
+					insertBuffer ++= combineCombinations(Single(wordId), root, leftwardCombinations, duplicateChecker)
 				}
 				
 				processedWordIds += wordId
@@ -74,9 +74,9 @@ object CombineWords
 		insertBuffer.flush()
 	}
 	
-	private def combineCombinations(baseWordIds: Vector[Int], node: Tree[CombinationPiece],
-	                                leftCombinations: Vector[Tree[CombinationPiece]],
-	                                duplicateChecker: DuplicateChecker): Vector[Tree[PreparedCombination]] =
+	private def combineCombinations(baseWordIds: Seq[Int], node: Tree[CombinationPiece],
+	                                leftCombinations: Seq[Tree[CombinationPiece]],
+	                                duplicateChecker: DuplicateChecker): Seq[Tree[PreparedCombination]] =
 	{
 		val rootHeadAssignments = node.nav.headAssignments
 		val wordIds = baseWordIds :+ node.nav.wordId
@@ -108,14 +108,14 @@ object CombineWords
 		// Records the left side branches to the duplicate checker also
 		duplicateChecker.recordLeftBranches(wordIds, leftTrees)
 		val leftResults = leftTrees.flatMap { leftNode =>
-			combineCombinations(wordIds.reverse, leftNode, Vector(), duplicateChecker) }
+			combineCombinations(wordIds.reverse, leftNode, Empty, duplicateChecker) }
 			.map { _.map { _.reverse } }
 		
 		// Checks whether this node ought to be saved
 		// Case: Yes => Uses this node as the base for other associated nodes
 		if (rootHeadAssignments.size >= minimumCombinationOccurrence) {
 			val baseCombination = PreparedCombination(wordIds, node.nav.assignments)
-			Vector(Tree(baseCombination, branchResults ++ leftResults))
+			Single(Tree(baseCombination, branchResults ++ leftResults))
 		}
 		// Case: No => Only save branches / left side results
 		else
@@ -123,9 +123,9 @@ object CombineWords
 	}
 	
 	// Each tree node contains the singular word id + the start locations of the word combination ending with that id
-	private def combinationsFrom(baseAssignments: Vector[WordAssignment], direction: WordSide = WordSide.Right,
+	private def combinationsFrom(baseAssignments: Seq[WordAssignment], direction: WordSide = WordSide.Right,
 	                             excludeWordIds: Set[Int] = Set())
-	                            (implicit connection: Connection): Vector[Tree[CombinationPiece]] =
+	                            (implicit connection: Connection): Seq[Tree[CombinationPiece]] =
 	{
 		if (baseAssignments.nonEmpty)
 		{
@@ -146,7 +146,7 @@ object CombineWords
 					// If this word was in the list of excluded words, no continuing combinations are searched
 					if (excludeWordIds.contains(wordId))
 						Tree(CombinationPiece(wordId, nextAssignments.map { assignment =>
-							Vector(baseAssignmentForNextAssignmentId(assignment.id), assignment) }))
+							Pair(baseAssignmentForNextAssignmentId(assignment.id), assignment) }))
 					else
 					{
 						val continuingCombinations = combinationsFrom(nextAssignments, direction, excludeWordIds)
@@ -162,16 +162,16 @@ object CombineWords
 						} }
 						// Combines this iteration's results with the recursive results to form a tree
 						Tree(CombinationPiece(wordId, stoppingAssignments
-							.map { assignment => Vector(baseAssignmentForNextAssignmentId(assignment.id), assignment) }),
+							.map { assignment => Pair(baseAssignmentForNextAssignmentId(assignment.id), assignment) }),
 							continuingResults)
 					}
 				}.toVector
 		}
 		else
-			Vector()
+			Empty
 	}
 	
-	private def assignmentsNextTo(original: Vector[WordAssignment], direction: WordSide)
+	private def assignmentsNextTo(original: Seq[WordAssignment], direction: WordSide)
 	                             (implicit connection: Connection) =
 	{
 		// Performs the queries in smaller pieces to avoid overburdening the database and results parsing
@@ -188,13 +188,13 @@ object CombineWords
 	// NESTED   ----------------------------------------
 	
 	// Assignments contain both the first word and the last word assignment
-	private case class CombinationPiece(wordId: Int, assignments: Vector[Vector[WordAssignment]])
+	private case class CombinationPiece(wordId: Int, assignments: Seq[Seq[WordAssignment]])
 	{
 		def headAssignments = assignments.map { _.head }
 	}
 	
 	// Assignment ids contain the first and the last word assignments
-	private case class PreparedCombination(wordIds: Vector[Int], assignments: Vector[Vector[WordAssignment]],
+	private case class PreparedCombination(wordIds: Seq[Int], assignments: Seq[Seq[WordAssignment]],
 	                                       baseSide: WordSide = WordSide.Left)
 	{
 		def headAssignmentIds = assignments.map { _.head.id }
@@ -223,7 +223,7 @@ object CombineWords
 		
 		// OTHER    ------------------------------
 		
-		def ++=(roots: Vector[Tree[PreparedCombination]]) = primaryInsertBuffer ++= roots.map { _ -> None }
+		def ++=(roots: Seq[Tree[PreparedCombination]]) = primaryInsertBuffer ++= roots.map { _ -> None }
 		
 		def flush() =
 		{
@@ -232,7 +232,7 @@ object CombineWords
 			assignmentInsertBuffer.flush()
 		}
 		
-		private def insertCombinations(remaining: Vector[(Tree[PreparedCombination], Option[Int])])
+		private def insertCombinations(remaining: Seq[(Tree[PreparedCombination], Option[Int])])
 		                               (implicit connection: Connection): Unit =
 		{
 			if (remaining.nonEmpty)
@@ -280,14 +280,14 @@ object CombineWords
 		
 		// Leftmost word id -> continuing word ids
 		// Inserts that would start with these ids will be skipped
-		private val skips = mutable.Map[Int, Vector[Vector[Int]]]()
+		private val skips = mutable.Map[Int, Seq[Seq[Int]]]()
 		
 		
 		// OTHER    --------------------------------
 		
 		// Filters the specified word combinations to exclude duplicates
 		// Used for right side word combinations
-		def filter(baseWordId: Int, rightCombinations: Vector[Tree[CombinationPiece]]) = {
+		def filter(baseWordId: Int, rightCombinations: Seq[Tree[CombinationPiece]]) = {
 			skips.get(baseWordId) match {
 				case Some(skips) =>
 					rightCombinations.map { root =>
@@ -298,7 +298,7 @@ object CombineWords
 		}
 		
 		// This method should be called whenever left side branches are included in word combinations
-		def recordLeftBranches(rightWordIds: Vector[Int], leftBranches: Vector[Tree[CombinationPiece]]) = {
+		def recordLeftBranches(rightWordIds: Seq[Int], leftBranches: Seq[Tree[CombinationPiece]]) = {
 			if (leftBranches.nonEmpty) {
 				// 3rd word and the following words are ignored on the right side
 				val rightChain = rightWordIds.take(2)
@@ -306,7 +306,7 @@ object CombineWords
 				val leftWordChains = leftBranches.flatMap { root =>
 					root.branchesBelowIterator.map { chain => chain.map { _.nav.wordId }.reverse :+ root.nav.wordId } }
 				skips ++= leftWordChains.groupMap { _.head } { _.tail }.map { case (head, tails) =>
-					val existingTails = skips.getOrElse(head, Vector())
+					val existingTails = skips.getOrElse(head, Empty)
 					head -> (existingTails ++ tails.map { _ ++ rightChain }).distinct
 				}
 			}
@@ -315,7 +315,7 @@ object CombineWords
 		// Skips all paths that match the 'remainingSkips'
 		// Returns either a) the full tree, b) a partial tree or c) no tree at all
 		private def filterTree(tree: Tree[CombinationPiece],
-		                        remainingSkips: Vector[Vector[Int]]): Option[Tree[CombinationPiece]] =
+		                        remainingSkips: Seq[Seq[Int]]): Option[Tree[CombinationPiece]] =
 		{
 			val applicableSkips = remainingSkips.filter { _.head == tree.nav.wordId }
 			

@@ -3,7 +3,9 @@ package vf.word.model.factory.bible
 import java.time.Instant
 
 /**
-  * Common trait for translation-related factories which allow construction with individual properties
+  * Common trait for translation-related factories which allow construction with individual 
+  * properties
+  * @tparam A Type of constructed instances
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */

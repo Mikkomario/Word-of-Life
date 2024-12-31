@@ -10,6 +10,7 @@ import vf.word.database.WordTables
  * @author Mikko Hilpinen
  * @since 23.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with Book?", "v0.2")
 object DbWritings
 {
 	// COMPUTED --------------------------------

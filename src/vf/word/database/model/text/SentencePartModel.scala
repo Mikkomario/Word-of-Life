@@ -8,6 +8,7 @@ import vf.word.database.WordTables
 import vf.word.model.partial.text.SentencePartData
 import vf.word.model.stored.text.SentencePart
 
+@deprecated("Deprecated for removal. Replaced with StatementDbModel in Logos", "v0.2")
 object SentencePartModel
 {
 	// COMPUTED ------------------------------
@@ -44,6 +45,7 @@ object SentencePartModel
  * @author Mikko Hilpinen
  * @since 24.4.2021, v0.1
  */
+@deprecated("Deprecated for removal. Replaced with StatementDbModel in Logos", "v0.2")
 case class SentencePartModel(id: Option[Int] = None, sentenceId: Option[Int] = None, orderIndex: Option[Int] = None)
 	extends Storable
 {

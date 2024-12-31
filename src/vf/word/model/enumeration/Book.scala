@@ -3,8 +3,7 @@ package vf.word.model.enumeration
 import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.generic.casting.ValueConversions._
 import utopia.flow.generic.model.immutable.Value
-import utopia.flow.generic.model.mutable.DataType.IntType
-import utopia.flow.generic.model.mutable.DataType.StringType
+import utopia.flow.generic.model.mutable.DataType.{IntType, StringType}
 import utopia.flow.generic.model.template.ValueConvertible
 import utopia.flow.operator.equality.EqualsExtensions._
 
@@ -37,14 +36,13 @@ object Book
 	/**
 	  * All available book values
 	  */
-	val values: Vector[Book] = 
-		Vector(Genesis, Exodus, Leviticus, Numbers, Deuteronomy, Joshua, Judges, Ruth, Samuel1, Samuel2, 
-			Kings1, Kings2, Chronicles1, Chronicles2, Ezra, Nehemiah, Esther, Job, Psalms, Proverbs, 
-			Ecclesiastes, SongOfSolomon, Isaiah, Jeremiah, Lamentations, Ezekiel, Daniel, Hosea, Joel, Amos, 
-			Obadiah, Jonah, Micah, Nahum, Habakkuk, Zephaniah, Haggai, Zechariah, Malachi, Matthew, Mark, 
-			Luke, John, Acts, Romans, Corinthians1, Corinthians2, Galatians, Ephesians, Philippians, 
-			Colossians, Thessalonians1, Thessalonians2, Timothy1, Timothy2, Titus, Philemon, Hebrews, James, 
-			Peter1, Peter2, John1, John2, John3, Jude, Revelation)
+	val values: Vector[Book] = Vector(Genesis, Exodus, Leviticus, Numbers, Deuteronomy, Joshua, Judges, Ruth,
+		Samuel1, Samuel2, Kings1, Kings2, Chronicles1, Chronicles2, Ezra, Nehemiah, Esther, Job, Psalms, Proverbs,
+		Ecclesiastes, SongOfSolomon, Isaiah, Jeremiah, Lamentations, Ezekiel, Daniel, Hosea, Joel, Amos,
+		Obadiah, Jonah, Micah, Nahum, Habakkuk, Zephaniah, Haggai, Zechariah, Malachi, Matthew, Mark,
+		Luke, John, Acts, Romans, Corinthians1, Corinthians2, Galatians, Ephesians, Philippians,
+		Colossians, Thessalonians1, Thessalonians2, Timothy1, Timothy2, Titus, Philemon, Hebrews, James,
+		Peter1, Peter2, John1, John2, John3, Jude, Revelation)
 	
 	
 	// OTHER	--------------------
@@ -54,29 +52,29 @@ object Book
 	  * @return book matching the specified id. None if the id didn't match any book
 	  */
 	def findForId(id: Int) = values.find { _.id == id }
-	
 	/**
 	  * @param value A value representing an book id
 	  * @return book matching the specified value. None if the value didn't match any book
 	  */
-	def findForValue(value: Value) = 
-		{ value.castTo(IntType, 
-			StringType) match { case Left(idVal) => findForId(idVal.getInt); case Right(stringVal) => val str = stringVal.getString; values.find { _.toString ~== str } } }
-	
+	def findForValue(value: Value) = value.castTo(IntType, StringType) match {
+		 case Left(idVal) => findForId(idVal.getInt)
+		 case Right(stringVal) =>
+			 val str = stringVal.getString
+			 values.find { _.toString ~== str }
+	 }
 	/**
 	  * @param id id matching a book
 	  * @return book matching that id. Failure if no matching value was found.
 	  */
 	def forId(id: Int) = findForId(id).toTry { new NoSuchElementException(
 		s"No value of Book matches id '$id'") }
-	
 	/**
 	  * @param value A value representing an book id
-	  * @return book matching the specified value, 
-	  * when the value is interpreted as an book id. Failure if no matching value was found.
+	  * @return book matching the specified value, when the value is interpreted as an book id. Failure if no 
+	  * matching value was found.
 	  */
 	def fromValue(value: Value) = 
-		findForValue(value).toTry { new NoSuchElementException(s"No value of Book matches '$value'") }
+		findForValue(value).toTry { new NoSuchElementException(s"No value of Book matches id '$value'") }
 	
 	
 	// NESTED	--------------------

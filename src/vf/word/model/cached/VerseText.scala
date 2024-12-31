@@ -1,6 +1,6 @@
 package vf.word.model.cached
 
-import utopia.logos.model.cached.StatementText
+import utopia.logos.model.cached.Statement
 
 /**
  * Represents the text contents of a single Bible verse
@@ -8,7 +8,8 @@ import utopia.logos.model.cached.StatementText
  * @author Mikko Hilpinen
  * @since 14/03/2024, v0.2
  */
-case class VerseText(index: Int, statements: Vector[StatementText])
+// TODO: Rename to Verse once Verse is named StoredVerse
+case class VerseText(index: Int, statements: Seq[Statement])
 {
 	// ATTRIBUTES   -------------------
 	

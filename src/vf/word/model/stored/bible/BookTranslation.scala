@@ -1,21 +1,32 @@
 package vf.word.model.stored.bible
 
-import utopia.vault.model.template.{FromIdFactory, StoredModelConvertible}
-import vf.word.database.access.single.bible.book_translation.DbSingleBookTranslation
+import utopia.flow.generic.model.template.ModelLike.AnyModel
+import utopia.vault.model.template.{FromIdFactory, StoredFromModelFactory, StoredModelConvertible}
+import vf.word.database.access.single.bible.translation.book.DbSingleBookTranslation
 import vf.word.model.enumeration.Book
-import vf.word.model.factory.bible.BookTranslationFactory
+import vf.word.model.factory.bible.{BookTranslationFactory, BookTranslationFactoryWrapper}
 import vf.word.model.partial.bible.BookTranslationData
+
+object BookTranslation extends StoredFromModelFactory[BookTranslationData, BookTranslation]
+{
+	// IMPLEMENTED	--------------------
+	
+	override def dataFactory = BookTranslationData
+	
+	override protected def complete(model: AnyModel, data: BookTranslationData) = 
+		model("id").tryInt.map { apply(_, data) }
+}
 
 /**
   * Represents a book translation that has already been stored in the database
-  * @param id id of this book translation in the database
+  * @param id   id of this book translation in the database
   * @param data Wrapped book translation data
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */
 case class BookTranslation(id: Int, data: BookTranslationData) 
-	extends StoredModelConvertible[BookTranslationData] with BookTranslationFactory[BookTranslation] 
-		with FromIdFactory[Int, BookTranslation]
+	extends StoredModelConvertible[BookTranslationData] with FromIdFactory[Int, BookTranslation]
+		with BookTranslationFactoryWrapper[BookTranslationData, BookTranslation]
 {
 	// COMPUTED	--------------------
 	
@@ -27,10 +38,10 @@ case class BookTranslation(id: Int, data: BookTranslationData)
 	
 	// IMPLEMENTED	--------------------
 	
-	override def withBook(book: Book) = copy(data = data.withBook(book))
+	override protected def wrappedFactory = data
 	
-	override def withId(id: Int) = copy(id = id)
+	override def withId(id: Int): BookTranslation = copy(id = id)
 	
-	override def withTranslationId(translationId: Int) = copy(data = data.withTranslationId(translationId))
+	override protected def wrap(data: BookTranslationData) = copy(data = data)
 }
 

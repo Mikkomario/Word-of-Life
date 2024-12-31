@@ -1,14 +1,15 @@
 package vf.word.database.access.many.bible.footnote
 
 import utopia.flow.generic.casting.ValueConversions._
-import utopia.vault.nosql.view.UnconditionalView
+import utopia.vault.nosql.view.{UnconditionalView, ViewManyByIntIds}
 
 /**
   * The root access point when targeting multiple footnotes at a time
   * @author Mikko Hilpinen
   * @since 21.03.2024, v0.2
   */
-object DbFootnotes extends ManyFootnotesAccess with UnconditionalView
+object DbFootnotes 
+	extends ManyFootnotesAccess with UnconditionalView with ViewManyByIntIds[ManyFootnotesAccess]
 {
 	// OTHER	--------------------
 	

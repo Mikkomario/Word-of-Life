@@ -1,8 +1,8 @@
 package vf.word.database.access.id.single
 
+import utopia.logos.database.LogosTables
 import utopia.vault.database.Connection
 import utopia.vault.nosql.access.single.column.SingleIntIdAccess
-import vf.word.database.WordTables
 import vf.word.database.model.text.WordModel
 import vf.word.model.enumeration.Capitalization
 
@@ -11,6 +11,7 @@ import vf.word.model.enumeration.Capitalization
  * @author Mikko Hilpinen
  * @since 3.5.2021, v0.2
  */
+@deprecated("Deprecated for removal", "v0.2")
 object DbWordId extends SingleIntIdAccess
 {
 	// COMPUTED ----------------------------
@@ -20,7 +21,7 @@ object DbWordId extends SingleIntIdAccess
 	
 	// IMPLEMENTED  ------------------------
 	
-	override def table = WordTables.word
+	override def table = LogosTables.word
 	
 	override def target = table
 	

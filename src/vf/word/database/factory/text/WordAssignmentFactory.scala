@@ -14,6 +14,7 @@ import vf.word.model.stored.text.WordAssignment
  * @author Mikko Hilpinen
  * @since 30.4.2021, v0.2
  */
+@deprecated("Deprecated for removal. Replaced with WordPlacementDbFactory in Logos", "v0.2")
 object WordAssignmentFactory extends FromValidatedRowModelFactory[WordAssignment]
 {
 	override def table = WordTables.wordAssignment
