@@ -8,4 +8,5 @@ package vf.word.model.stored.address
  * @param bookId Id of the writing that contains this chapter
  * @param number Number of this chapter (starting from 1)
  */
+@deprecated("Deprecated for removal", "v0.2")
 case class Chapter(id: Int, bookId: Int, number: Int)

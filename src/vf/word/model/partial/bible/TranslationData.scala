@@ -42,9 +42,7 @@ case class TranslationData(name: String, abbreviation: String = "", created: Ins
 	override def toModel = Model(Vector("name" -> name, "abbreviation" -> abbreviation, "created" -> created))
 	
 	override def withAbbreviation(abbreviation: String) = copy(abbreviation = abbreviation)
-	
 	override def withCreated(created: Instant) = copy(created = created)
-	
 	override def withName(name: String) = copy(name = name)
 }
 
